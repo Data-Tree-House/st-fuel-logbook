@@ -1,0 +1,55 @@
+{
+    // Git settings
+    "git.autofetch": true,
+    // Ruff settings - explicit config file path
+    "ruff.configuration": "${workspaceFolder}/.ruff.toml",
+    // Mypy settings - auto-discovers mypy.ini in workspace root
+    "python.analysis.typeCheckingMode": "standard",
+    // Python testing settings
+    "python.testing.pytestEnabled": true,
+    "python.testing.unittestEnabled": false,
+    "python.testing.pytestArgs": [
+        "${workspaceFolder}/tests",
+        "--cov-config=pyproject.toml"
+    ],
+    "[python]": {
+        "editor.defaultFormatter": "charliermarsh.ruff",
+        "editor.formatOnSave": true,
+        "editor.codeActionsOnSave": {
+            "source.organizeImports.ruff": "explicit",
+            "source.fixAll.ruff": "explicit"
+        }
+    },
+    // Code formatting
+    "editor.formatOnSave": true,
+    // Editor settings
+    "editor.rulers": [
+        120
+    ],
+    "files.insertFinalNewline": true,
+    "files.trimTrailingWhitespace": true,
+    "files.eol": "\n",
+    // Codespell settings - explicit workspace paths
+    "cSpell.enabled": true,
+    "cSpell.language": "en-GB",
+    "cSpell.customDictionaries": {
+        "project-words": {
+            "name": "project-words",
+            "path": "${workspaceFolder}/.project-words.txt",
+            "addWords": true,
+            "scope": "workspace"
+        }
+    },
+    // Error Lens settings
+    "errorLens.enabled": true,
+    "errorLens.enabledDiagnosticLevels": [
+        "error",
+        "warning",
+        "info",
+        "hint"
+    ],
+    "errorLens.onSave": true,
+    "errorLens.onSaveTimeout": 1000,
+    "errorLens.delay": 500,
+    "errorLens.followCursor": "allLines"
+}
