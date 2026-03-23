@@ -13,7 +13,7 @@ from utils.model import FuelEntry, User, validate_fuel_consistency
 
 st.set_page_config(
     page_title="Fuel Logbook",
-    layout="wide",
+    layout="centered",
     initial_sidebar_state="collapsed",
 )
 

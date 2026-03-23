@@ -13,6 +13,7 @@ dependencies = [
     "python-dotenv>=1.2.2,<2.0.0",
     "cachetools>=6.2.0,<7.0.0",
     "SQLAlchemy>=2.0.48,<3.0.0",
+    "plotly>=6.6.0,<7.0.0",
     "pytz",
     "loguru",
 ]

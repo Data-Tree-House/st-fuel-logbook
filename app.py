@@ -6,43 +6,53 @@
 
 
 import streamlit as st
+from loguru import logger
 
-from utils.db import get_engine
-from utils.model import Base
-from utils.umami import load_umami
+import components as c
+import utils as u
 
-load_umami()
+# =============== // INITIALIZE APPLICATION // ===============
 
+st.set_page_config(
+    page_title="Fuel Logbook",
+    layout="centered",
+    initial_sidebar_state="collapsed",
+)
+u.load_umami()
 
 if "init" not in st.session_state:
-    engine = get_engine()
-    Base.metadata.create_all(engine)
+    logger.info("Initializing new session session")
+    engine = u.get_engine()
+    u.model.Base.metadata.create_all(engine)
     st.session_state.init = True
 
 
-st.logo(
-    "static/streamlit.png",
-    icon_image="static/datatreehouse.circle.png",
-    size="large",
-    link="https://datatreehouse.org",
-)
-
+# =============== // REDIRECT TO AUTH // ===============
 
 if not st.user.is_logged_in:
-    with st.container(border=True):
-        st.markdown("### Welcome to your Fuel Logbook! ⛽")
-        st.markdown("To get the most out of this app, please log in with a Google account")
-        if st.button("Log in with Google"):
-            st.login("google")
-    st.stop()
+    c.login()
+
+# =============== // PAGE NAVIGATION // ===============
 
 pages = [
-    st.Page("home.py", title="Home", icon=":material/home:"),
-    st.Page("stats.py", title="Statistics", icon=":material/analytics:"),
+    st.Page(
+        "home.py",
+        title="Home",
+        icon=":material/home:",
+    ),
+    st.Page(
+        "stats.py",
+        title="Statistics",
+        icon=":material/analytics:",
+    ),
 ]
 page = st.navigation(pages)
 page.run()
 
-if st.user.is_logged_in and st.sidebar.button("Log out"):
-    st.logout()
-st.sidebar.markdown("[![buy-us-a-coffee](./app/static/buy-us-a-coffee.png)](https://pos.snapscan.io/qr/Ew6rBAsV)")
+# =============== // SIDEBAR AND LOGOUT // ===============
+
+c.top_logo()
+c.profile()
+if st.user.is_logged_in:
+    c.logout()
+c.buy_us_a_coffee()
