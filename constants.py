@@ -1,5 +1,7 @@
+from datetime import tzinfo
 from pathlib import Path
 
+import pytz
 from PIL import Image
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -15,6 +17,8 @@ class Settings(BaseSettings):
     static_dir: Path = ROOT_DIR / "static"
 
     favicon: Image.Image = Image.open(ROOT_DIR / "static" / "datatreehouse.circle.png")
+
+    tz: tzinfo = pytz.timezone("Africa/Johannesburg")
 
     model_config = SettingsConfigDict(
         env_file=".env",

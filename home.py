@@ -1,86 +1,69 @@
 import datetime
-from typing import Any
 
-import pytz
 import streamlit as st
 from loguru import logger
-from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from utils import PRIMARY_COLOR
-from utils.db import get_engine
-from utils.model import FuelEntry, User, validate_fuel_consistency
-
-st.set_page_config(
-    page_title="Fuel Logbook",
-    layout="centered",
-    initial_sidebar_state="collapsed",
-)
-
-TIMEZONE = pytz.timezone("Africa/Johannesburg")
+from constants import settings
+from utils import primary_text
+from utils.db import get_engine, get_preferences, upsert_user
+from utils.model import FuelEntry, validate_fuel_consistency
+from utils.types import Preferences, StreamlitUser
 
 engine = get_engine()
-with Session(engine) as session:
-    stmt = select(User).where(User.id == st.user.sub)
-    user = session.execute(stmt).scalar_one_or_none()
-    if user:
-        st.session_state.user = user
-    else:
-        with st.spinner("Creating user..."):
-            new_user = User(
-                id=st.user.sub,
-                name=st.user.name,
-                email=st.user.email,
-                picture=st.user.picture,
-            )
-            session.add(new_user)
-            session.commit()
-            st.session_state.user = new_user
+
+# =============== // CONSTANTS // ===============
+
+available_currencies = {
+    "ZAR": 0,
+}
+
+available_fuel_types = {
+    "Unleaded Petrol 95": 0,
+    "Unleaded Petrol 93": 1,
+    "Diesel 10ppm": 2,
+    "Diesel 50ppm": 3,
+    "Diesel 500ppm": 4,
+}
 
 
-def fancy_text(text: Any) -> str:
-    return f":color[{text}]{{foreground='#{PRIMARY_COLOR}'}}"
+# =============== // ACCOUNT CREATION FOR NEW USERS // ===============
+
+upsert_user(
+    logged_in_user=StreamlitUser(
+        sub=str(st.user.sub),
+        name=str(st.user.name),
+        email=str(st.user.email),
+        picture=str(st.user.picture),
+    )
+)
+
+# =============== // FETCH PREFERENCES // ===============
+
+st.markdown(f"## Welcome back, {primary_text(st.user.name)} 👋")
+with st.spinner("Fetching preferences...", show_time=True):
+    preferences: Preferences = get_preferences()
 
 
-st.markdown(f"## Welcome back, {fancy_text(st.user.name)} 👋")
-
-# Fetch the last fuel entry's data. It will probably be the same!
-last_fuel_type = None
-last_location = None
-last_currency = None
-last_vehicle = None
-all_vehicles: list[str] = []
-with Session(engine) as session:
-    stmt = select(FuelEntry).where(FuelEntry.user_id == st.user.sub).order_by(FuelEntry.entry_datetime.desc())
-    last_entry = session.execute(stmt).scalars().first()
-    if last_entry:
-        last_fuel_type = last_entry.fuel_type
-        last_location = last_entry.location
-        last_currency = last_entry.currency
-        last_vehicle = last_entry.vehicle
-
-    stmt = select(FuelEntry.vehicle).where(FuelEntry.user_id == st.user.sub).distinct()
-    all_vehicles = [row[0] for row in session.execute(stmt).all() if row[0]]
-
+# =============== // FORM FOR NEW ENTRY // ===============
 
 with st.form("fuel_entry_form"):
     st.markdown("### Record Fuel Entry")
-
     col1, col2 = st.columns(2)
     with col1:
-        date = st.date_input("Date", value=datetime.datetime.now(TIMEZONE))
+        date = st.date_input("Date", value=datetime.datetime.now(settings.tz))
     with col2:
-        time = st.time_input("Time", value=datetime.datetime.now(TIMEZONE).time())
+        time = st.time_input("Time", value=datetime.datetime.now(settings.tz).time())
 
     odometer = st.number_input(
-        f"Odometer ({fancy_text('km')})",
+        f"Odometer ({primary_text('km')})",
         min_value=0.0,
         step=1.0,
         format="%.1f",
     )
 
     trip = st.number_input(
-        f"Trip Distance ({fancy_text('km')})",
+        f"Trip Distance ({primary_text('km')})",
         min_value=0.0,
         step=1.0,
         format="%.1f",
@@ -89,20 +72,16 @@ with st.form("fuel_entry_form"):
     col1, col2 = st.columns(2)
     with col1:
         filled = st.number_input(
-            f"Fuel Filled ({fancy_text('litres')})",
+            f"Fuel Filled ({primary_text('litres')})",
             min_value=0.0,
             step=0.1,
             format="%.2f",
         )
     with col2:
-        options = {
-            "Petrol": 0,
-            "Diesel": 1,
-        }
         fuel_type = st.selectbox(
             "Fuel Type",
-            options=list(options.keys()),
-            index=options.get(str(last_fuel_type), 0),
+            options=list(available_fuel_types.keys()),
+            index=available_fuel_types.get(preferences["last_fuel_type"], 0),
         )
 
     col1, col2 = st.columns(2)
@@ -114,26 +93,23 @@ with st.form("fuel_entry_form"):
             format="%.2f",
         )
     with col2:
-        options = {
-            "ZAR": 0,
-        }
         currency = st.selectbox(
             "Currency",
-            options=list(options.keys()),
-            index=options.get(str(last_currency), 0),
+            options=list(available_currencies.keys()),
+            index=available_currencies.get(preferences["last_currency"], 0),
         )
 
     vehicle = st.selectbox(
         "Vehicle",
-        options=all_vehicles,
+        options=list(preferences["all_vehicles"].keys()),
         accept_new_options=True,
-        index=all_vehicles.index(last_vehicle) if last_vehicle in all_vehicles else -1,
+        index=preferences["all_vehicles"].get(preferences["last_vehicle"], 0),
     )
 
     location = st.text_input(
         "Location",
         placeholder="e.g., Cape Town",
-        value=last_location if last_location else "",
+        value=preferences["last_location"],
     )
 
     submitted = st.form_submit_button(
@@ -143,9 +119,9 @@ with st.form("fuel_entry_form"):
     )
 
     if submitted:
-        with st.spinner("Submitting..."):
+        with st.spinner("Submitting...", show_time=True):
             # Combine date and time into a timezone-aware datetime
-            entry_datetime = TIMEZONE.localize(datetime.datetime.combine(date, time))
+            entry_datetime = settings.tz.localize(datetime.datetime.combine(date, time))
 
             # Create new fuel entry
             try:
@@ -172,10 +148,10 @@ with st.form("fuel_entry_form"):
                     session.add(new_entry)
                     session.commit()
 
-                    # Calculate metrics
                     price_per_litre = new_entry.price_per_litre
                     fuel_consumption = new_entry.fuel_consumption
             except ValueError as e:
+                logger.error(f"Validation error while saving fuel entry: {e!s}")
                 st.error(f"❌ Error: {e!s}")
                 st.stop()
             except Exception:
@@ -183,14 +159,17 @@ with st.form("fuel_entry_form"):
                 st.error("❌ An unexpected error occurred!")
                 st.stop()
 
+            logger.info("Fuel entry saved successfully.")
             st.success("✅ Entry saved successfully!")
             if filled > 0:
                 col1, col2 = st.columns(2)
                 with col1:
-                    st.metric("Price per Litre", f"{fancy_text(currency)} {price_per_litre:.2f}")
+                    st.metric(
+                        "Price per Litre", f"{primary_text(currency)} {price_per_litre:.2f} {primary_text('/ L')}"
+                    )
                 with col2:
                     if trip > 0:
-                        st.metric("Fuel Consumption", f"{fuel_consumption:.2f} {fancy_text('km/L')}")
+                        st.metric("Fuel Consumption", f"{fuel_consumption:.2f} {primary_text('km/L')}")
 
 
 if submitted and st.button(
