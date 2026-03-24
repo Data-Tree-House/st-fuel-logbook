@@ -10,6 +10,7 @@ from loguru import logger
 
 import components as c
 import utils as u
+from constants import settings
 
 # =============== // INITIALIZE APPLICATION // ===============
 
@@ -17,6 +18,7 @@ st.set_page_config(
     page_title="Fuel Logbook",
     layout="centered",
     initial_sidebar_state="collapsed",
+    page_icon=settings.favicon,
 )
 u.load_umami()
 

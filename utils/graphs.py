@@ -6,13 +6,11 @@ import streamlit as st
 from utils import PRIMARY_COLOR
 
 
-def generate_fuel_data(start_year: int = 2016, end_year: int = 2026) -> pd.DataFrame:
-    """Generate fake fuel efficiency data over years."""
+def generate_fuel_data(
+    start_year: int = 2016,
+    end_year: int = 2026,
+) -> pd.DataFrame:
     years = list(range(start_year, end_year + 1))
-
-    # Generate realistic fuel efficiency data (km per liter)
-    # Starting around 12 km/L and gradually improving to ~15 km/L
-    np.random.seed(42)  # For reproducibility
 
     base_efficiency = 12.0
     improvement_rate = 0.25  # km/L improvement per year
@@ -23,7 +21,12 @@ def generate_fuel_data(start_year: int = 2016, end_year: int = 2026) -> pd.DataF
         efficiency = base_efficiency + (i * improvement_rate) + np.random.uniform(-0.5, 0.5)
         fuel_efficiency.append(round(efficiency, 2))
 
-    return pd.DataFrame({"Year": years, "Fuel Efficiency (km/L)": fuel_efficiency})
+    return pd.DataFrame(
+        {
+            "Year": years,
+            "Fuel Efficiency (km/L)": fuel_efficiency,
+        }
+    )
 
 
 def plot_fuel_efficiency():
@@ -35,7 +38,6 @@ def plot_fuel_efficiency():
 
     marker_style = {"size": 8, "color": f"#{PRIMARY_COLOR}"}
 
-    # Add line trace
     fig.add_trace(
         go.Scatter(
             x=df["Year"],
@@ -47,18 +49,25 @@ def plot_fuel_efficiency():
         )
     )
 
-    # Update layout
     fig.update_layout(
         title="",
         xaxis_title="Year",
         yaxis_title="Fuel Efficiency (km/L)",
         hovermode="x unified",
         template="plotly_white",
-        height=500,
+        margin={"t": 10},
     )
+
+    fig.update_xaxes(fixedrange=True)
+    fig.update_yaxes(fixedrange=True)
 
     return fig
 
 
 def st_plot_fuel_efficiency():
-    st.plotly_chart(plot_fuel_efficiency(), use_container_width=True)
+    st.plotly_chart(
+        plot_fuel_efficiency(),
+        width="stretch",
+        height=350,
+        config={"displayModeBar": False},
+    )
