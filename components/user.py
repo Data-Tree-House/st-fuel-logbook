@@ -32,7 +32,7 @@ def metrics():
 def profile():
     with st.sidebar:
         try:
-            profile_picture = st.session_state.user.picture or settings.default_picture
+            profile_picture = st.user.picture or settings.default_picture
         except Exception:
             profile_picture = settings.default_picture
 

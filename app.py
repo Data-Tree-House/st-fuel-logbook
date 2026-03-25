@@ -47,6 +47,11 @@ pages = [
         title="Statistics",
         icon=":material/analytics:",
     ),
+    st.Page(
+        "bulk.py",
+        title="Bulk Upload",
+        icon=":material/upload_file:",
+    )
 ]
 page = st.navigation(pages)
 page.run()

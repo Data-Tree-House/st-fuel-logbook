@@ -128,10 +128,16 @@ class FuelEntry(BaseModel):
         Float,
         comment="Amount of fuel filled in litres",
     )
-    fuel_type: Mapped[Literal["Petrol", "Diesel"]] = mapped_column(
+    fuel_type: Mapped[Literal[
+        "Unleaded Petrol 95",
+        "Unleaded Petrol 93",
+        "Diesel 10ppm",
+        "Diesel 50ppm",
+        "Diesel 500ppm",
+    ]] = mapped_column(
         String(20),
         nullable=False,
-        comment="Type of fuel used (e.g., Petrol, Diesel, LPG, Electric)",
+        comment="Type of fuel used (e.g., Petrol, Diesel)",
     )
     price: Mapped[float] = mapped_column(
         Float,
@@ -170,13 +176,6 @@ class FuelEntry(BaseModel):
             f"<FuelEntry(id={self.id}, user_id={self.user_id}, "
             f"date={self.entry_datetime}, odometer={self.odometer_km}km)>"
         )
-
-    @validates("fuel_type")
-    def validate_fuel_type(self, key, value):  # noqa
-        allowed_fuel_types = {"Petrol", "Diesel"}
-        if value not in allowed_fuel_types:
-            raise ValueError(f"Invalid fuel type '{value}'. Allowed types are: {', '.join(allowed_fuel_types)}")
-        return value
 
     @validates("odometer_km")
     def validate_odometer_km(self, key, value):  # noqa

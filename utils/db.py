@@ -25,9 +25,7 @@ def upsert_user(
     with Session(get_engine()) as session:
         stmt = select(model.User).where(model.User.id == logged_in_user["sub"])
         user: model.User | None = session.execute(stmt).scalar_one_or_none()
-        if user:
-            st.session_state.user = user
-        else:
+        if user is None:
             logger.info(f"Creating new user {logged_in_user['email']}")
             with st.spinner("Creating user...", show_time=True):
                 new_user = model.User(
@@ -38,7 +36,6 @@ def upsert_user(
                 )
                 session.add(new_user)
                 session.commit()
-                st.session_state.user = new_user
 
 
 def get_preferences() -> Preferences:
@@ -51,7 +48,7 @@ def get_preferences() -> Preferences:
     with Session(get_engine()) as session:
         stmt = (
             select(model.FuelEntry)
-            .where(model.FuelEntry.user_id == st.session_state.user.id)
+            .where(model.FuelEntry.user_id == st.user.sub)
             .order_by(model.FuelEntry.entry_datetime.desc())
         )
         last_entry: model.FuelEntry | None = session.execute(stmt).scalars().first()
@@ -61,7 +58,7 @@ def get_preferences() -> Preferences:
             last_currency = last_entry.currency
             last_vehicle = last_entry.vehicle
 
-        stmt = select(model.FuelEntry.vehicle).where(model.FuelEntry.user_id == st.session_state.user.id).distinct()
+        stmt = select(model.FuelEntry.vehicle).where(model.FuelEntry.user_id == st.user.sub).distinct()
         all_vehicles: dict[str, int] = {
             r: i for i, r in enumerate([row[0] for row in session.execute(stmt).all() if row[0]])
         }

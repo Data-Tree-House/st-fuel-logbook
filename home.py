@@ -128,13 +128,13 @@ with st.form("fuel_entry_form"):
                 with Session(engine) as session:
                     validate_fuel_consistency(
                         session=session,
-                        user_id=st.session_state.user.id,
+                        user_id=str(st.user.sub),
                         vehicle=vehicle,
                         fuel_type=fuel_type,
                     )
 
                     new_entry = FuelEntry(
-                        user_id=st.session_state.user.id,
+                        user_id=st.user.sub,
                         entry_datetime=entry_datetime,
                         odometer_km=odometer,
                         trip_km=trip,
