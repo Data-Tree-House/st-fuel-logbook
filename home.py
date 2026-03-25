@@ -182,5 +182,12 @@ st.page_link(
     "stats.py",
     label="View Statistics",
     icon=":material/analytics:",
-    use_container_width=True,
+    width="stretch",
+)
+
+st.page_link(
+    "bulk.py",
+    label="Bulk Upload",
+    icon=":material/upload_file:",
+    width="stretch",
 )
