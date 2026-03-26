@@ -8,7 +8,6 @@ from sqlalchemy.orm import (
     Mapped,
     mapped_column,
     relationship,
-    synonym,
     validates,
 )
 
@@ -128,13 +127,15 @@ class FuelEntry(BaseModel):
         Float,
         comment="Amount of fuel filled in litres",
     )
-    fuel_type: Mapped[Literal[
-        "Unleaded Petrol 95",
-        "Unleaded Petrol 93",
-        "Diesel 10ppm",
-        "Diesel 50ppm",
-        "Diesel 500ppm",
-    ]] = mapped_column(
+    fuel_type: Mapped[
+        Literal[
+            "Unleaded Petrol 95",
+            "Unleaded Petrol 93",
+            "Diesel 10ppm",
+            "Diesel 50ppm",
+            "Diesel 500ppm",
+        ]
+    ] = mapped_column(
         String(20),
         nullable=False,
         comment="Type of fuel used (e.g., Petrol, Diesel)",
@@ -157,12 +158,6 @@ class FuelEntry(BaseModel):
         nullable=True,
         comment="Location where fuel was purchased",
     )
-
-    # ====> Synonyms
-    # https://docs.sqlalchemy.org/en/21/orm/mapped_attributes.html#synonyms
-    odometer: Mapped[float] = synonym("odometer_km")
-    trip: Mapped[float] = synonym("trip_km")
-    fuel_litres: Mapped[float] = synonym("fuel")
 
     # ====> Relationships
     # https://docs.sqlalchemy.org/en/21/orm/basic_relationships.html

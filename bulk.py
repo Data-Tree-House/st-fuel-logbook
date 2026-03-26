@@ -1,6 +1,7 @@
 import pandas as pd
 import streamlit as st
 from loguru import logger
+from numpy import mean
 from sqlalchemy.orm import Session
 
 from constants import settings
@@ -64,6 +65,15 @@ with st.container(border=True):
 
     if "file_uploader_key" not in st.session_state:
         st.session_state.file_uploader_key = 0
+
+    if "total_filled_sum" not in st.session_state:
+        st.session_state.total_filled_sum = 0.0
+
+    if "total_km_sum" not in st.session_state:
+        st.session_state.total_km_sum = 0.0
+
+    if "ave_km_per_l_performance" not in st.session_state:
+        st.session_state.ave_km_per_l_performance = 0.0
 
     if not st.session_state.uploaded_file_processed:
         uploaded_file = st.file_uploader(
@@ -139,6 +149,16 @@ with st.container(border=True):
             st.rerun()
 
         if st.session_state.validated_entries is not None:
+            st.session_state.total_filled_sum = sum(entry.fuel_litres for entry in st.session_state.validated_entries)
+            st.session_state.total_km_sum = sum(entry.trip_km for entry in st.session_state.validated_entries)
+            st.session_state.ave_km_per_l_performance = mean(
+                [
+                    entry.trip_km / entry.fuel_litres
+                    for entry in st.session_state.validated_entries
+                    if entry.fuel_litres > 0
+                ]
+            )
+
             entry_count = len(st.session_state.validated_entries)
             st.info(
                 f"File validated successfully. Ready to upload **{entry_count}** {'entry' if entry_count == 1 else 'entries'}."
@@ -158,6 +178,7 @@ with st.container(border=True):
                             session.commit()
 
                         st.success(f"Successfully uploaded {entry_count} entries!")
+
                         st.session_state.uploaded_file_processed = True
                         st.session_state.validated_entries = None
                         st.rerun()
@@ -178,6 +199,30 @@ with st.container(border=True):
 
     else:
         st.success("Upload completed successfully!")
+        if all(
+            value > 0
+            for value in [
+                st.session_state.total_filled_sum,
+                st.session_state.total_km_sum,
+                st.session_state.ave_km_per_l_performance,
+            ]
+        ):
+            col1, col2, col3 = st.columns(3)
+            with col1:
+                st.metric(
+                    label="Total Fuel Filled",
+                    value=f"{st.session_state.total_filled_sum:.0f} {primary_text('L')}",
+                )
+            with col2:
+                st.metric(
+                    label="Total Trip Distance",
+                    value=f"{st.session_state.total_km_sum:.0f} {primary_text('km')}",
+                )
+            with col3:
+                st.metric(
+                    label="Ave Performance (km/L)",
+                    value=f"{st.session_state.ave_km_per_l_performance:.2f} {primary_text('km/L')}",
+                )
         if st.button("Upload Another File"):
             st.session_state.uploaded_file_processed = False
             st.session_state.validated_entries = None

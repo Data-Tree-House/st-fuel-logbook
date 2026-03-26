@@ -1,12 +1,12 @@
 import streamlit as st
 from loguru import logger
-from sqlalchemy import create_engine, select
+from sqlalchemy import create_engine, func, select
 from sqlalchemy.engine import Engine
 from sqlalchemy.orm import Session
 
 from constants import settings
 from utils import model
-from utils.types import Preferences, StreamlitUser
+from utils.types import Preferences, SideCardMetrics, StreamlitUser
 
 
 @st.cache_resource
@@ -70,3 +70,25 @@ def get_preferences() -> Preferences:
         "last_location": last_location,
         "last_vehicle": last_vehicle,
     }
+
+
+@st.cache_data(ttl=30)
+def side_card_metrics(user_id: str) -> SideCardMetrics:
+    with Session(get_engine()) as session:
+        result = (
+            session.query(
+                func.count(model.FuelEntry.id).label("num_entries"),
+                func.sum(model.FuelEntry.fuel_litres).label("total_fuel_usage"),
+                func.sum(model.FuelEntry.trip_km).label("total_km"),
+                func.sum(model.FuelEntry.price).label("total_expense"),
+            )
+            .filter(model.FuelEntry.user_id == user_id)
+            .first()
+        )
+
+        return {
+            "num_entries": result.num_entries or 0,  # type: ignore
+            "total_fuel_usage": result.total_fuel_usage or 0.0,  # type: ignore
+            "total_km": result.total_km or 0.0,  # type: ignore
+            "total_expense": result.total_expense or 0.0,  # type: ignore
+        }

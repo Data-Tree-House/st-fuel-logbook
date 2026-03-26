@@ -14,3 +14,10 @@ class Preferences(TypedDict):
     last_currency: str
     last_vehicle: str
     all_vehicles: dict[str, int]
+
+
+class SideCardMetrics(TypedDict):
+    num_entries: int
+    total_fuel_usage: int
+    total_km: int
+    total_expense: float
