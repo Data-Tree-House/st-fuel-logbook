@@ -2,3 +2,6 @@ centered
 datatreehouse
 ondelete
 selectbox
+showlegend
+xaxis
+yaxis

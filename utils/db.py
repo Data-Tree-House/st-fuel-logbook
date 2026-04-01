@@ -1,3 +1,4 @@
+import pandas as pd
 import streamlit as st
 from loguru import logger
 from sqlalchemy import create_engine, func, select
@@ -92,3 +93,21 @@ def side_card_metrics(user_id: str) -> SideCardMetrics:
             "total_km": result.total_km or 0.0,  # type: ignore
             "total_expense": result.total_expense or 0.0,  # type: ignore
         }
+
+
+@st.cache_data(ttl=30)
+def get_fuel_litres_over_time(user_id: str) -> pd.DataFrame:
+    columns = [
+        model.FuelEntry.entry_datetime,
+        model.FuelEntry.fuel_litres,
+        model.FuelEntry.vehicle,
+    ]
+
+    with Session(get_engine()) as session:
+        stmt = select(*columns).where(model.FuelEntry.user_id == user_id).order_by(model.FuelEntry.entry_datetime)
+        data = session.execute(stmt).all()
+
+    return pd.DataFrame(
+        data,
+        columns=[v.name for v in columns],
+    )
