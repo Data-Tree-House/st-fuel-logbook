@@ -24,7 +24,7 @@ def upsert_user(
     logged_in_user: StreamlitUser,
 ):
     with Session(get_engine()) as session:
-        stmt = select(model.User).where(model.User.id == logged_in_user["sub"])
+        stmt = select(model.User).where(model.User.sub == logged_in_user["sub"])
         user: model.User | None = session.execute(stmt).scalar_one_or_none()
         if user is None:
             logger.info(f"Creating new user {logged_in_user['email']}")

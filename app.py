@@ -12,6 +12,8 @@ import components as c
 import utils as u
 from constants import settings
 
+# TODO: add sigterm handlers
+
 # =============== // INITIALIZE APPLICATION // ===============
 
 st.set_page_config(
@@ -51,7 +53,7 @@ pages = [
         "bulk.py",
         title="Bulk Upload",
         icon=":material/upload_file:",
-    )
+    ),
 ]
 page = st.navigation(pages)
 page.run()

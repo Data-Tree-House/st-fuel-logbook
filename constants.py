@@ -9,7 +9,11 @@ ROOT_DIR = Path(__file__).resolve(strict=True).parent
 
 
 class Settings(BaseSettings):
+    # =============== // Database Configurations // ===============
+    # dialect[+driver]://user:password@host/dbname[?key=value..]
+    # e.g. engine = create_engine("postgresql+psycopg2://scott:tiger@localhost/test")
     db_connection_string: str
+    db_echo: bool = False
 
     default_picture: str = "https://gravatar.com/avatar/580b828f66630050b21aeaf8c20b89b3?s=400&d=mp&r=x"
 

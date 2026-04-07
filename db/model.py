@@ -1,7 +1,10 @@
+import hashlib
 from datetime import datetime
+from functools import cached_property
 from typing import Literal
 
 import pytz
+from email_validator import validate_email
 from sqlalchemy import DateTime, Float, ForeignKey, Integer, String
 from sqlalchemy.orm import (
     DeclarativeBase,
@@ -11,7 +14,6 @@ from sqlalchemy.orm import (
     validates,
 )
 
-# Define the timezone
 TIMEZONE = pytz.timezone("Africa/Johannesburg")
 
 
@@ -80,14 +82,30 @@ class User(BaseModel):
     )
 
     def __repr__(self) -> str:
-        return f"<User(id={self.sub}, name='{self.name}', email='{self.email}')>"
+        return f"User(id={self.sub}, name='{self.name}', email='{self.email}')"
+
+    @cached_property
+    def gravatar_hash(self) -> str:
+        return hashlib.md5(self.email.strip().lower().encode("utf-8")).hexdigest()
+
+    @property
+    def gravatar_avatar(self) -> str:
+        return f"https://secure.gravatar.com/avatar/{self.gravatar_hash}"
+
+    @property
+    def gravatar_profile(self) -> str:
+        return f"https://gravatar.com/{self.gravatar_hash}"
 
     # https://docs.sqlalchemy.org/en/21/orm/mapped_attributes.html#simple-validators
     @validates("email")
     def validate_email(self, key, value):  # noqa
-        if "@" not in value:
-            raise ValueError("failed simple email validation")
-        return value
+        email_info = validate_email(
+            value,
+            # If true, DNS queries are made to check that the domain name in the email address
+            # (the part after the @-sign) can receive mail, as described above.
+            check_deliverability=True,
+        )
+        return email_info.normalized
 
 
 class FuelEntry(BaseModel):
@@ -172,28 +190,10 @@ class FuelEntry(BaseModel):
             f"date={self.entry_datetime}, odometer={self.odometer_km}km)>"
         )
 
-    @validates("odometer_km")
-    def validate_odometer_km(self, key, value):  # noqa
+    @validates("odometer_km", "trip_km", "fuel_litres", "price")
+    def validate_non_negative(self, key, value):
         if value < 0:
-            raise ValueError("Odometer reading cannot be negative")
-        return value
-
-    @validates("trip_km")
-    def validate_trip_km(self, key, value):  # noqa
-        if value < 0:
-            raise ValueError("Trip distance cannot be negative")
-        return value
-
-    @validates("fuel_litres")
-    def validate_fuel_litres(self, key, value):  # noqa
-        if value < 0:
-            raise ValueError("Fuel litres cannot be negative")
-        return value
-
-    @validates("price")
-    def validate_price(self, key, value):  # noqa
-        if value < 0:
-            raise ValueError("Price cannot be negative")
+            raise ValueError(f"{key} cannot be negative")
         return value
 
     @property
@@ -207,24 +207,3 @@ class FuelEntry(BaseModel):
     @property
     def fuel_consumption_per_100(self) -> float:
         return (self.fuel_litres / self.trip_km) * 100
-
-
-def validate_fuel_consistency(
-    session,
-    user_id: str,
-    vehicle: str,
-    fuel_type: str,
-    entry_id: str | None = None,
-):
-    query = session.query(FuelEntry).filter(FuelEntry.user_id == user_id, FuelEntry.vehicle == vehicle)
-
-    if entry_id:  # Exclude current entry when updating
-        query = query.filter(FuelEntry.id != entry_id)
-
-    previous_entry = query.first()
-
-    if previous_entry and previous_entry.fuel_type != fuel_type:
-        raise ValueError(
-            f"Fuel type inconsistency: {vehicle} previously used "
-            f"{previous_entry.fuel_type}, cannot switch to {fuel_type}"
-        )
