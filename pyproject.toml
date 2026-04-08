@@ -29,7 +29,7 @@ Homepage = "https://fuel-logbook.datatreehouse.org"
 
 # uv sync --dev
 [dependency-groups]
-lint = ["pre-commit"]
+lint = ["pre-commit", "ty", "ruff"]
 test = [
     "pytest",
     "pytest-cov",
@@ -43,7 +43,56 @@ dev = [{ include-group = "test" }, { include-group = "lint" }]
 root = ["./"]
 python = ".venv"
 
-[tool.pytest]
+[tool.ruff]
+line-length = 120
+indent-width = 4
+target-version = "py312"
+
+[tool.ruff.lint]
+select = [
+    "E",
+    "F",
+    "B",
+    "I",
+    "FAST",
+    "A",
+    "C4",
+    "DTZ",
+    "ISC",
+    "ICN",
+    "LOG",
+    "PT",
+    "Q",
+    "RET",
+    "SIM",
+    "TID",
+    "TC",
+    "ARG",
+    "PTH",
+    "C90",
+    "N",
+    "PERF",
+    "RUF",
+]
+ignore = ["S101"]
+fixable = ["ALL"]
+unfixable = []
+dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+line-ending = "auto"
+
+[tool.pytest.ini_options]
 minversion = "9.0"
-addopts = ["--ignore=tests"]
 markers = ["integration: marks tests that are integration tests"]
+pythonpath = ["."]
+
+[tool.coverage.run]
+source = ["."]
+omit = ["tests/*"]
+
+[tool.coverage.report]
+show_missing = true
