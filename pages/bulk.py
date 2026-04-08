@@ -3,14 +3,10 @@ import streamlit as st
 from loguru import logger
 from numpy import mean
 from sqlalchemy.orm import Session
+from utils.db import get_engine
 
 from constants import settings
 from utils import coloured_text, model, primary_text
-from utils.db import get_engine
-
-st.set_page_config(
-    page_title="Bulk Upload",
-)
 
 st.markdown(f"## Ready to perform a {primary_text('bulk upload')}?")
 

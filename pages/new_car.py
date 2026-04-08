@@ -114,7 +114,7 @@ with st.form("new_car_form"):
 
 if not is_first_car or (submitted and is_first_car):
     st.page_link(
-        "home.py",
+        "pages/home.py",
         label="Log a Fuel Entry",
         icon=":material/local_gas_station:",
         width="stretch",

@@ -41,24 +41,24 @@ if not st.user.is_logged_in:
 pages = {
     "": [
         st.Page(
-            "home.py",
+            "pages/home.py",
             title="Fuel Entry",
             icon=":material/local_gas_station:",
         ),
         st.Page(
-            "stats.py",
+            "pages/stats.py",
             title="Statistics",
             icon=":material/analytics:",
         ),
     ],
     "Manage": [
         st.Page(
-            "new_car.py",
+            "pages/new_car.py",
             title="New Car",
             icon=":material/directions_car:",
         ),
         st.Page(
-            "bulk.py",
+            "pages/bulk.py",
             title="Bulk Upload",
             icon=":material/upload_file:",
         ),

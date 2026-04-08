@@ -40,7 +40,7 @@ crud.upsert_user(
 def new_car_layout():
     st.markdown(f"Please {primary_text('add a car')} to start logging fuel entries.")
     st.page_link(
-        "new_car.py",
+        "pages/new_car.py",
         label="Add my first car",
         icon=":material/directions_car:",
         width="stretch",
@@ -157,19 +157,19 @@ def new_fuel_entry_layout():
         st.rerun()
 
     st.page_link(
-        "stats.py",
+        "pages/stats.py",
         label="View Statistics",
         icon=":material/analytics:",
         width="stretch",
     )
     st.page_link(
-        "new_car.py",
+        "pages/new_car.py",
         label="Add a New Car",
         icon=":material/directions_car:",
         width="stretch",
     )
     st.page_link(
-        "bulk.py",
+        "pages/bulk.py",
         label="Bulk Upload",
         icon=":material/upload_file:",
         width="stretch",
