@@ -1,9 +1,12 @@
+import datetime
+
 from loguru import logger
 from sqlalchemy import select
 from sqlalchemy.engine import Engine
 from sqlalchemy.orm import Session
 
 from db import m
+from db.model import FuelTypeLiteral
 
 
 def create_all_tables(
@@ -60,3 +63,45 @@ def upsert_user(
         session.refresh(user)
         session.expunge(user)
     return user
+
+
+def new_car(
+    user_id: str,
+    nickname: str,
+    fuel_type: FuelTypeLiteral,
+    engine: Engine,
+    registration_number: str | None = None,
+    vin_number: str | None = None,
+    model_description: str | None = None,
+    color: str | None = None,
+    registration_date: datetime.date | None = None,
+) -> None:
+    """Create a new car entry for a user
+
+    Args:
+        user_id (str): User Id (sub) of the logged in user
+        nickname (str): A short nickname for the car
+        fuel_type (FuelTypeLiteral): What fuel does the car use?
+        engine (Engine): Engine to use for the database operation. NOT a car engine, lol!
+        vin_number (str | None, optional): Vehicle Identification Number (VIN) (optional). Defaults to None.
+        registration_number (str | None, optional): Vehicle registration number (optional). Defaults to None.
+        model_description (str | None, optional): Model description of the car (optional),
+            e.g. ford focus 1.0 ecoboost ambiente 5dr. Defaults to None.
+        color (str | None, optional): Color of the car (optional). Defaults to None.
+        registration_date (date | None, optional): Registration date of the car (optional).
+            Defaults to None.
+    """
+    with Session(engine) as session:
+        new_car = m.Car(
+            user_id=user_id,
+            nickname=nickname,
+            fuel_type=fuel_type,
+            registration_number=registration_number,
+            vin_number=vin_number,
+            model_description=model_description,
+            color=color,
+            registration_date=registration_date,
+        )
+        session.add(new_car)
+        session.commit()
+    return

@@ -1,11 +1,11 @@
 import hashlib
-from datetime import datetime
+from datetime import date, datetime
 from functools import cached_property
 from typing import Literal
 
 import pytz
 from email_validator import validate_email
-from sqlalchemy import DateTime, Float, ForeignKey, Integer, String
+from sqlalchemy import Date, DateTime, Float, ForeignKey, Integer, String
 from sqlalchemy.orm import (
     DeclarativeBase,
     Mapped,
@@ -15,6 +15,14 @@ from sqlalchemy.orm import (
 )
 
 TIMEZONE = pytz.timezone("Africa/Johannesburg")
+
+FuelTypeLiteral = Literal[
+    "Unleaded Petrol 95",
+    "Unleaded Petrol 93",
+    "Diesel 10ppm",
+    "Diesel 50ppm",
+    "Diesel 500ppm",
+]
 
 
 class Base(DeclarativeBase):
@@ -80,6 +88,14 @@ class User(BaseModel):
         # https://docs.sqlalchemy.org/en/21/orm/cascades.html
         cascade="all, delete-orphan",
     )
+    cars: Mapped[list["Car"]] = relationship(
+        "Car",
+        back_populates="user",
+        # Indicates that the child object should follow along with its parent in all cases,
+        # and be deleted once it is no longer associated with that parent
+        # https://docs.sqlalchemy.org/en/21/orm/cascades.html
+        cascade="all, delete-orphan",
+    )
 
     def __repr__(self) -> str:
         return f"User(id={self.sub}, name='{self.name}', email='{self.email}')"
@@ -106,6 +122,83 @@ class User(BaseModel):
             check_deliverability=True,
         )
         return email_info.normalized
+
+
+class Car(BaseModel):
+    """Cars that you owe"""
+
+    __tablename__ = "cars"
+
+    id: Mapped[str] = mapped_column(
+        Integer,
+        primary_key=True,
+        index=True,
+        autoincrement=True,
+    )
+    user_id: Mapped[str] = mapped_column(
+        String(30),
+        ForeignKey(
+            "users.sub",
+            ondelete="CASCADE",
+        ),
+        index=True,
+        comment="Reference to the user who created this entry",
+    )
+    nickname: Mapped[str] = mapped_column(
+        String(50),
+        comment="A short nickname for the car",
+        unique=True,
+    )
+    fuel_type: Mapped[FuelTypeLiteral] = mapped_column(
+        String(20),
+        nullable=False,
+        comment="Type of fuel used (e.g., Petrol, Diesel)",
+    )
+    registration_number: Mapped[str | None] = mapped_column(
+        String(10),
+        nullable=True,
+        comment="Vehicle registration number (optional)",
+    )
+    vin_number: Mapped[str | None] = mapped_column(
+        String(17),
+        nullable=True,
+        unique=True,
+        comment="Vehicle Identification Number (VIN) (optional)",
+    )
+    model_description: Mapped[str | None] = mapped_column(
+        String(255),
+        nullable=True,
+        comment="Model description of the car (optional), e.g. ford focus 1.0 ecoboost ambiente 5dr",
+    )
+    color: Mapped[str | None] = mapped_column(
+        String(50),
+        nullable=True,
+        comment="Color of the car (optional)",
+    )
+    registration_date: Mapped[date | None] = mapped_column(
+        Date(),
+        nullable=True,
+        comment="Registration date of the car (optional)",
+    )
+    is_deleted: Mapped[bool] = mapped_column(
+        default=False,
+        nullable=False,
+        comment="Soft delete flag for the car",
+    )
+
+    # ====> Relationships
+    # https://docs.sqlalchemy.org/en/21/orm/basic_relationships.html
+    user: Mapped["User"] = relationship(
+        "User",
+        back_populates="cars",
+    )
+
+    def __repr__(self) -> str:
+        return f"Car(id={self.id}, user_id={self.user_id}, nickname='{self.nickname}', fuel_type='{self.fuel_type}')"
+
+
+# TODO add vin validation
+# TODO add properties to extract vin details: https://uaw.org/standing-committees/union-label/how-to-read-your-vin/
 
 
 class FuelEntry(BaseModel):
@@ -145,19 +238,6 @@ class FuelEntry(BaseModel):
         Float,
         comment="Amount of fuel filled in litres",
     )
-    fuel_type: Mapped[
-        Literal[
-            "Unleaded Petrol 95",
-            "Unleaded Petrol 93",
-            "Diesel 10ppm",
-            "Diesel 50ppm",
-            "Diesel 500ppm",
-        ]
-    ] = mapped_column(
-        String(20),
-        nullable=False,
-        comment="Type of fuel used (e.g., Petrol, Diesel)",
-    )
     price: Mapped[float] = mapped_column(
         Float,
         comment="Total price paid in Rand",
@@ -166,10 +246,6 @@ class FuelEntry(BaseModel):
         String(255),
         default="ZAR",
         comment="Goes with the price",
-    )
-    vehicle: Mapped[str] = mapped_column(
-        String(255),
-        comment="e.g. Ford Focus",
     )
     location: Mapped[str | None] = mapped_column(
         String(255),

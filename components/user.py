@@ -2,8 +2,6 @@ import streamlit as st
 
 from constants import settings
 from utils import primary_text
-from utils.db import side_card_metrics
-from utils.types import SideCardMetrics
 
 
 def format_currency(value: float) -> str:
@@ -20,29 +18,28 @@ def format_currency(value: float) -> str:
 
 
 def metrics():
-    m: SideCardMetrics = side_card_metrics(str(st.user.sub))
     with st.container(border=True):
         col1, col2 = st.columns(2)
         with col1:
             st.metric(
                 f"{primary_text('Entries')}",
-                value=m["num_entries"],
+                value=0,
                 format="%.0f",
             )
             st.metric(
                 f"{primary_text('Total Trip')}",
-                value=m["total_km"],
+                value=0,
                 format=f"%.0f {primary_text('km')}",
             )
         with col2:
             st.metric(
                 f"{primary_text('Total Fuel Usage')}",
-                value=m["total_fuel_usage"],
+                value=0,
                 format=f"%.0f {primary_text('L')}",
             )
             st.metric(
                 f"{primary_text('Total Expense')}",
-                value=format_currency(m["total_expense"]),
+                value=format_currency(0),
             )
 
 
