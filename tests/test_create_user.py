@@ -4,6 +4,7 @@ import re
 import pytest
 from email_validator import EmailNotValidError
 from sqlalchemy.engine import Engine
+from sqlalchemy.exc import DataError
 
 from db import crud
 
@@ -67,4 +68,70 @@ def test_invalid_email(mock_engine: Engine):
             email="invalid-email@mytest.com",
             picture=sample_data["picture"],
             engine=mock_engine,
+        )
+
+
+@pytest.mark.integration
+@pytest.mark.parametrize(
+    ("input_data", "expected_data"),
+    [
+        pytest.param(
+            {
+                "field": "sub",
+                "max_chars": 30,
+            },
+            {
+                "error": DataError,
+            },
+            id="sub - DataError",
+        ),
+        pytest.param(
+            {
+                "field": "name",
+                "max_chars": 255,
+            },
+            {
+                "error": DataError,
+            },
+            id="name - DataError",
+        ),
+        pytest.param(
+            {
+                "field": "email",
+                "max_chars": 250,
+            },
+            {
+                "error": DataError,
+            },
+            id="email - DataError",
+        ),
+        pytest.param(
+            {
+                "field": "picture",
+                "max_chars": 500,
+            },
+            {
+                "error": DataError,
+            },
+            id="picture - DataError",
+        ),
+    ],
+)
+def test_long_field_lengths(
+    input_data: dict,
+    expected_data: dict,
+    pg_engine: Engine,
+):
+    new_sample_data = dict(sample_data)
+
+    old_value = sample_data[input_data["field"]]
+    new_sample_data[input_data["field"]] = f"{'x' * (input_data['max_chars'] - len(old_value) + 1)}{old_value}"
+
+    with pytest.raises(expected_data["error"]):
+        crud.upsert_user(
+            sub=new_sample_data["sub"],
+            name=new_sample_data["name"],
+            email=new_sample_data["email"],
+            picture=new_sample_data["picture"],
+            engine=pg_engine,
         )

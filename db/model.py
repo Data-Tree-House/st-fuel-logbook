@@ -57,7 +57,7 @@ class User(BaseModel):
         comment="The name and surname of the user",
     )
     email: Mapped[str] = mapped_column(
-        String(255),
+        String(250),  # according to email standards, the true max is 254...
         unique=True,
         index=True,
         comment="The email of the logged in user",
