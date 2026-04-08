@@ -31,6 +31,8 @@ jobs:
           uv sync --dev
 
       - name: Run tests with pytest
+        env:
+          DB_CONNECTION_STRING: "sqlite:///:memory:"
         run: |
           uv run pytest tests/ --cov=. --cov-report=term-missing
 
