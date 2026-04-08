@@ -3,7 +3,7 @@ import datetime
 from loguru import logger
 from sqlalchemy import select
 from sqlalchemy.engine import Engine
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, selectinload
 
 from db import m
 from db.model import FuelTypeLiteral
@@ -43,25 +43,20 @@ def upsert_user(
         User: The user in the database.
     """
     with Session(engine) as session:
-        stmt = select(m.User).where(m.User.sub == sub)
+        stmt = select(m.User).where(m.User.sub == sub).options(selectinload(m.User.cars))
+
         user: m.User | None = session.execute(stmt).scalar_one_or_none()
         if user is None:
             logger.info(f"Creating new user {email}")
-            new_user = m.User(
-                sub=sub,
-                name=name,
-                email=email,
-                picture=picture,
-            )
-            session.add(new_user)
+            session.add(m.User(sub=sub, name=name, email=email, picture=picture))
             session.commit()
-            user = new_user
+            user = session.execute(stmt).scalar_one()
 
-        # Refresh to load all attributes while still in session,
-        # then expunge so the object can be used outside the session.
-        # ref: https://docs.sqlalchemy.org/en/21/orm/session_state_management.html#expunging
-        session.refresh(user)
-        session.expunge(user)
+        if user.last_logged_vehicle_id is None and user.cars:
+            user.last_logged_vehicle_id = user.cars[0].id
+            session.commit()
+            user = session.execute(stmt).scalar_one()
+
     return user
 
 

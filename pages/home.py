@@ -1,5 +1,4 @@
 import datetime
-from collections.abc import Sequence
 
 import streamlit as st
 from loguru import logger
@@ -26,13 +25,21 @@ available_fuel_types = {
 
 # =============== // ACCOUNT CREATION FOR NEW USERS // ===============
 
-crud.upsert_user(
+user = crud.upsert_user(
     sub=str(st.user.sub),
     name=str(st.user.name),
     email=str(st.user.email),
     picture=str(st.user.picture),
     engine=get_engine(),
 )
+
+available_cars: dict[str, int] = {car.nickname: car.id for car in user.cars}
+car_nicknames = list(available_cars.keys())
+last_used_car_nickname: str | None = next(
+    (car.nickname for car in user.cars if car.id == user.last_logged_vehicle_id),
+    None,  # default if not found
+)
+last_used_car_index = car_nicknames.index(last_used_car_nickname) if last_used_car_nickname in car_nicknames else 0
 
 # =============== // FORM FOR NEW ENTRY // ===============
 
@@ -57,6 +64,12 @@ def new_fuel_entry_layout():
             date = st.date_input("Date", value=datetime.datetime.now(settings.tz))
         with col2:
             time = st.time_input("Time", value=datetime.datetime.now(settings.tz).time())
+
+        car = st.selectbox(
+            "Car",
+            options=car_nicknames,
+            index=last_used_car_index,
+        )
 
         odometer = st.number_input(
             f"Odometer ({primary_text('km')})",
@@ -109,13 +122,13 @@ def new_fuel_entry_layout():
         if submitted:
             with st.spinner("Submitting...", show_time=True):
                 # Combine date and time into a timezone-aware datetime
-                entry_datetime = settings.tz.localize(datetime.datetime.combine(date, time))
+                entry_datetime = datetime.datetime.combine(date, time, tzinfo=settings.tz)
 
                 # Create new fuel entry
                 try:
                     with Session(get_engine()) as session:
                         new_entry = m.FuelEntry(
-                            user_id=st.user.sub,
+                            car_id=available_cars[car],
                             entry_datetime=entry_datetime,
                             odometer_km=odometer,
                             trip_km=trip,
@@ -125,6 +138,12 @@ def new_fuel_entry_layout():
                             location=location if location else None,
                         )
                         session.add(new_entry)
+
+                        # Update last logged vehicle on the user
+                        db_user = session.get(m.User, str(st.user.sub))
+                        if db_user:
+                            db_user.last_logged_vehicle_id = available_cars[car]
+
                         session.commit()
 
                         price_per_litre = new_entry.price_per_litre
@@ -176,12 +195,7 @@ def new_fuel_entry_layout():
     )
 
 
-cars: Sequence[m.Car] | None = crud.get_cars(
-    user_id=str(st.user.sub),
-    engine=get_engine(),
-)
-
-if cars is None:
+if not user.cars:
     st.markdown(f"## Welcome to {primary_text('Fuel Logbook')} 👋")
     new_car_layout()
 else:

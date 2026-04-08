@@ -80,21 +80,24 @@ class User(BaseModel):
 
     # ====> Relationships
     # https://docs.sqlalchemy.org/en/21/orm/basic_relationships.html
-    fuel_entries: Mapped[list["FuelEntry"]] = relationship(
-        "FuelEntry",
+    cars: Mapped[list["Car"]] = relationship(
+        "Car",
         back_populates="user",
+        foreign_keys="Car.user_id",
         # Indicates that the child object should follow along with its parent in all cases,
         # and be deleted once it is no longer associated with that parent
         # https://docs.sqlalchemy.org/en/21/orm/cascades.html
         cascade="all, delete-orphan",
     )
-    cars: Mapped[list["Car"]] = relationship(
-        "Car",
-        back_populates="user",
-        # Indicates that the child object should follow along with its parent in all cases,
-        # and be deleted once it is no longer associated with that parent
-        # https://docs.sqlalchemy.org/en/21/orm/cascades.html
-        cascade="all, delete-orphan",
+
+    last_logged_vehicle_id: Mapped[int | None] = mapped_column(
+        Integer,
+        ForeignKey(
+            "cars.id",
+            ondelete="SET NULL",
+        ),
+        nullable=True,
+        comment="Reference to the last logged vehicle. This is used to pre-select the vehicle in the fuel entry form.",
     )
 
     def __repr__(self) -> str:
@@ -129,7 +132,7 @@ class Car(BaseModel):
 
     __tablename__ = "cars"
 
-    id: Mapped[str] = mapped_column(
+    id: Mapped[int] = mapped_column(
         Integer,
         primary_key=True,
         index=True,
@@ -191,6 +194,15 @@ class Car(BaseModel):
     user: Mapped["User"] = relationship(
         "User",
         back_populates="cars",
+        foreign_keys="Car.user_id",
+    )
+    fuel_entries: Mapped[list["FuelEntry"]] = relationship(
+        "FuelEntry",
+        back_populates="car",
+        # Indicates that the child object should follow along with its parent in all cases,
+        # and be deleted once it is no longer associated with that parent
+        # https://docs.sqlalchemy.org/en/21/orm/cascades.html
+        cascade="all, delete-orphan",
     )
 
     def __repr__(self) -> str:
@@ -212,14 +224,14 @@ class FuelEntry(BaseModel):
         index=True,
         autoincrement=True,
     )
-    user_id: Mapped[str] = mapped_column(
-        String(30),
+    car_id: Mapped[int] = mapped_column(
+        Integer,
         ForeignKey(
-            "users.sub",
+            "cars.id",
             ondelete="CASCADE",
         ),
         index=True,
-        comment="Reference to the user who created this entry",
+        comment="Reference to the car this entry belongs to",
     )
     entry_datetime: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
@@ -255,14 +267,14 @@ class FuelEntry(BaseModel):
 
     # ====> Relationships
     # https://docs.sqlalchemy.org/en/21/orm/basic_relationships.html
-    user: Mapped["User"] = relationship(
-        "User",
+    car: Mapped["Car"] = relationship(
+        "Car",
         back_populates="fuel_entries",
     )
 
     def __repr__(self) -> str:
         return (
-            f"<FuelEntry(id={self.id}, user_id={self.user_id}, "
+            f"<FuelEntry(id={self.id}, car_id={self.car_id}, "
             f"date={self.entry_datetime}, odometer={self.odometer_km}km)>"
         )
 

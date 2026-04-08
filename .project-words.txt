@@ -4,6 +4,7 @@ datatreehouse
 Durbanville
 ondelete
 selectbox
+selectinload
 showlegend
 xaxis
 yaxis
