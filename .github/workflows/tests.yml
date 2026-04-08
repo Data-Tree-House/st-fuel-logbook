@@ -34,10 +34,10 @@ jobs:
         env:
           DB_CONNECTION_STRING: "sqlite:///:memory:"
         run: |
-          uv run pytest tests/ --cov=. --cov-report=term-missing
+          uv run pytest tests/ --cov=. --cov-branch --cov-report=xml --cov-config=pyproject.toml
 
-      - name: Upload coverage reports
-        if: matrix.python-version == '3.12'
-        uses: codecov/codecov-action@v4
+      - name: Upload coverage reports to Codecov
+        uses: codecov/codecov-action@v5
         with:
-          fail_ci_if_error: false
+          token: ${{ secrets.CODECOV_TOKEN }}
+          flags: ${{ matrix.os }}-py${{ matrix.python-version }}
