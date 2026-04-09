@@ -16,7 +16,7 @@ def generate_fuel_data(
     improvement_rate = 0.25  # km/L improvement per year
 
     fuel_efficiency = []
-    for i, year in enumerate(years):
+    for i, _year in enumerate(years):
         # Add trend improvement + some random variation
         efficiency = base_efficiency + (i * improvement_rate) + np.random.uniform(-0.5, 0.5)
         fuel_efficiency.append(round(efficiency, 2))

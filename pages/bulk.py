@@ -3,10 +3,10 @@ import streamlit as st
 from loguru import logger
 from numpy import mean
 from sqlalchemy.orm import Session
-from utils.db import get_engine
 
 from constants import settings
-from utils import coloured_text, model, primary_text
+from db import get_engine, m
+from utils import coloured_text, primary_text
 
 st.markdown(f"## Ready to perform a {primary_text('bulk upload')}?")
 
@@ -96,12 +96,12 @@ with st.container(border=True):
                 inplace=True,
             )
 
-            entries: list[model.FuelEntry] = []
+            entries: list[m.FuelEntry] = []
             errors: list[dict] = []
 
             for index, row in df.iterrows():
                 try:
-                    entry = model.FuelEntry(
+                    entry = m.FuelEntry(
                         entry_datetime=row["date"],
                         user_id=st.user.sub,
                         vehicle=row["vehicle"],
@@ -157,7 +157,8 @@ with st.container(border=True):
 
             entry_count = len(st.session_state.validated_entries)
             st.info(
-                f"File validated successfully. Ready to upload **{entry_count}** {'entry' if entry_count == 1 else 'entries'}."
+                "File validated successfully. "
+                f"Ready to upload **{entry_count}** {'entry' if entry_count == 1 else 'entries'}."
             )
 
             col1, col2 = st.columns([1, 1])
