@@ -8,6 +8,22 @@ from constants import settings
 from db import crud, get_engine, m
 from utils import primary_text
 
+# =============== // ACCOUNT CREATION FOR NEW USERS // ===============
+
+try:
+    user = crud.upsert_user(
+        sub=str(st.user.sub),
+        name=str(st.user.name),
+        email=str(st.user.email),
+        picture=str(st.user.picture),
+        engine=get_engine(),
+    )
+except Exception as e:
+    logger.exception(f"An error occurred while upserting the user: {e}")
+    st.error("❌ An error occurred while loading your account")
+    st.stop()
+
+
 # =============== // CONSTANTS // ===============
 
 available_currencies = {
@@ -21,18 +37,6 @@ available_fuel_types = {
     "Diesel 50ppm": 3,
     "Diesel 500ppm": 4,
 }
-
-
-# =============== // ACCOUNT CREATION FOR NEW USERS // ===============
-
-user = crud.upsert_user(
-    sub=str(st.user.sub),
-    name=str(st.user.name),
-    email=str(st.user.email),
-    picture=str(st.user.picture),
-    engine=get_engine(),
-)
-
 available_cars: dict[str, int] = {car.nickname: car.id for car in user.cars}
 car_nicknames = list(available_cars.keys())
 last_used_car_nickname: str | None = next(
@@ -121,18 +125,16 @@ def new_fuel_entry_layout():
 
         if submitted:
             with st.spinner("Submitting...", show_time=True):
-                # Combine date and time into a timezone-aware datetime
                 entry_datetime = datetime.datetime.combine(date, time, tzinfo=settings.tz)
 
-                # Create new fuel entry
                 try:
                     with Session(get_engine()) as session:
                         new_entry = m.FuelEntry(
                             car_id=available_cars[car],
                             entry_datetime=entry_datetime,
-                            odometer_km=odometer,
-                            trip_km=trip,
-                            fuel_litres=filled,
+                            odometer=odometer,
+                            trip=trip,
+                            fuel_filled=filled,
                             price=price,
                             currency=currency,
                             location=location if location else None,

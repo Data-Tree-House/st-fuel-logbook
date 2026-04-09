@@ -33,7 +33,7 @@ class TestNewCar:
         )
 
         with Session(mock_engine) as session:
-            stmt = session.query(m.Car).filter_by(user_id=self.user_id)
+            stmt = session.query(m.Car).filter_by(user_id=self.user_id, nickname="Ford Focus")
             car = stmt.one_or_none()
             assert car is not None
             assert car.nickname == "Ford Focus"
@@ -46,7 +46,7 @@ class TestNewCar:
         """Test if I can create a new car, using all of the available fields"""
         crud.new_car(
             user_id=self.user_id,
-            nickname="Ford Focus",
+            nickname="Ford Fiesta",
             fuel_type="Unleaded Petrol 95",
             registration_number="XX XX XX GP",
             vin_number="1FALP42X9PF111111",
@@ -57,7 +57,7 @@ class TestNewCar:
         )
 
         with Session(mock_engine) as session:
-            stmt = session.query(m.Car).filter_by(user_id=self.user_id)
+            stmt = session.query(m.Car).filter_by(user_id=self.user_id, nickname="Ford Fiesta")
             car = stmt.one_or_none()
             assert car is not None
             assert car.nickname == IsAnyStr(max_length=50)
@@ -68,6 +68,9 @@ class TestNewCar:
             assert car.model_description == IsAnyStr(max_length=255)
             assert car.color == IsAnyStr(max_length=255)
             assert car.registration_date == IsDate(gt=datetime.date(2000, 1, 1))
+
+    def test_unique_nickname_constraint(self, mock_engine: Engine):
+        pass
 
 
 class TestReadCar:

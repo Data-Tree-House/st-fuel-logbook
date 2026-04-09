@@ -3,12 +3,12 @@ def plot_fuel_litres_over_time() -> go.Figure:
     fig = px.line(
         data_frame=df,
         x="entry_datetime",
-        y="fuel_litres",
+        y="fuel_filled",
         color="vehicle",
         hover_name="vehicle",
         hover_data={
             "entry_datetime": "|%b %d, %Y",
-            "fuel_litres": ":.2f",
+            "fuel_filled": ":.2f",
         },
         markers=True,
         title="Fuel Filled Over Time",

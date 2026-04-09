@@ -5,7 +5,7 @@ from typing import Literal
 
 import pytz
 from email_validator import validate_email
-from sqlalchemy import Date, DateTime, Float, ForeignKey, Integer, String
+from sqlalchemy import Date, DateTime, Float, ForeignKey, Integer, String, UniqueConstraint
 from sqlalchemy.orm import (
     DeclarativeBase,
     Mapped,
@@ -80,6 +80,7 @@ class User(BaseModel):
 
     # ====> Relationships
     # https://docs.sqlalchemy.org/en/21/orm/basic_relationships.html
+
     cars: Mapped[list["Car"]] = relationship(
         "Car",
         back_populates="user",
@@ -132,6 +133,12 @@ class Car(BaseModel):
 
     __tablename__ = "cars"
 
+    __table_args__ = (
+        UniqueConstraint("user_id", "nickname", name="uq_user_nickname"),
+        UniqueConstraint("user_id", "vin_number", name="uq_user_vin"),
+        UniqueConstraint("user_id", "registration_number", name="uq_user_registration"),
+    )
+
     id: Mapped[int] = mapped_column(
         Integer,
         primary_key=True,
@@ -150,7 +157,6 @@ class Car(BaseModel):
     nickname: Mapped[str] = mapped_column(
         String(50),
         comment="A short nickname for the car",
-        unique=True,
     )
     fuel_type: Mapped[FuelTypeLiteral] = mapped_column(
         String(20),
@@ -165,7 +171,6 @@ class Car(BaseModel):
     vin_number: Mapped[str | None] = mapped_column(
         String(17),
         nullable=True,
-        unique=True,
         comment="Vehicle Identification Number (VIN) (optional)",
     )
     model_description: Mapped[str | None] = mapped_column(
@@ -238,15 +243,15 @@ class FuelEntry(BaseModel):
         index=True,
         comment="Date and time of the fuel entry",
     )
-    odometer_km: Mapped[float] = mapped_column(
+    odometer: Mapped[float] = mapped_column(
         Float,
         comment="Odometer reading in kilometres",
     )
-    trip_km: Mapped[float] = mapped_column(
+    trip: Mapped[float] = mapped_column(
         Float,
         comment="Trip distance in kilometres",
     )
-    fuel_litres: Mapped[float] = mapped_column(
+    fuel_filled: Mapped[float] = mapped_column(
         Float,
         comment="Amount of fuel filled in litres",
     )
@@ -274,11 +279,10 @@ class FuelEntry(BaseModel):
 
     def __repr__(self) -> str:
         return (
-            f"<FuelEntry(id={self.id}, car_id={self.car_id}, "
-            f"date={self.entry_datetime}, odometer={self.odometer_km}km)>"
+            f"<FuelEntry(id={self.id}, car_id={self.car_id}, date={self.entry_datetime}, odometer={self.odometer}km)>"
         )
 
-    @validates("odometer_km", "trip_km", "fuel_litres", "price")
+    @validates("odometer", "trip", "fuel_filled", "price")
     def validate_non_negative(self, key, value):
         if value < 0:
             raise ValueError(f"{key} cannot be negative")
@@ -286,12 +290,12 @@ class FuelEntry(BaseModel):
 
     @property
     def price_per_litre(self) -> float:
-        return self.price / self.fuel_litres
+        return self.price / self.fuel_filled
 
     @property
     def fuel_consumption(self) -> float:
-        return self.trip_km / self.fuel_litres
+        return self.trip / self.fuel_filled
 
     @property
     def fuel_consumption_per_100(self) -> float:
-        return (self.fuel_litres / self.trip_km) * 100
+        return (self.fuel_filled / self.trip) * 100

@@ -23,9 +23,9 @@ with template_path.open("rb") as f:
 COLUMN_NAME_MAPPING = {
     "Date (DD/MM/YYYY)": "date",
     "Vehicle": "vehicle",
-    "Odometer (km)": "odometer_km",
-    "Trip Distance (km)": "trip_km",
-    "Fuel Filled (Liters)": "fuel_litres",
+    "Odometer (km)": "odometer",
+    "Trip Distance (km)": "trip",
+    "Fuel Filled (Liters)": "fuel_filled",
     "Fuel Type": "fuel_type",
     "Price": "price",
     "Location": "location",
@@ -105,9 +105,9 @@ with st.container(border=True):
                         entry_datetime=row["date"],
                         user_id=st.user.sub,
                         vehicle=row["vehicle"],
-                        odometer_km=row["odometer_km"],
-                        trip_km=row["trip_km"],
-                        fuel_litres=row["fuel_litres"],
+                        odometer=row["odometer"],
+                        trip=row["trip"],
+                        fuel_filled=row["fuel_filled"],
                         fuel_type=row["fuel_type"],
                         price=row["price"],
                         location=row["location"],
@@ -145,13 +145,13 @@ with st.container(border=True):
             st.rerun()
 
         if st.session_state.validated_entries is not None:
-            st.session_state.total_filled_sum = sum(entry.fuel_litres for entry in st.session_state.validated_entries)
-            st.session_state.total_km_sum = sum(entry.trip_km for entry in st.session_state.validated_entries)
+            st.session_state.total_filled_sum = sum(entry.fuel_filled for entry in st.session_state.validated_entries)
+            st.session_state.total_km_sum = sum(entry.trip for entry in st.session_state.validated_entries)
             st.session_state.ave_km_per_l_performance = mean(
                 [
-                    entry.trip_km / entry.fuel_litres
+                    entry.trip / entry.fuel_filled
                     for entry in st.session_state.validated_entries
-                    if entry.fuel_litres > 0
+                    if entry.fuel_filled > 0
                 ]
             )
 

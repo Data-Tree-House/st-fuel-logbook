@@ -4,10 +4,10 @@ from loguru import logger
 from sqlalchemy import create_engine, func, select
 from sqlalchemy.engine import Engine
 from sqlalchemy.orm import Session
+from utils.types import Preferences, SideCardMetrics, StreamlitUser
 
 from constants import settings
 from utils import model
-from utils.types import Preferences, SideCardMetrics, StreamlitUser
 
 
 @st.cache_resource
@@ -79,8 +79,8 @@ def side_card_metrics(user_id: str) -> SideCardMetrics:
         result = (
             session.query(
                 func.count(model.FuelEntry.id).label("num_entries"),
-                func.sum(model.FuelEntry.fuel_litres).label("total_fuel_usage"),
-                func.sum(model.FuelEntry.trip_km).label("total_km"),
+                func.sum(model.FuelEntry.fuel_filled).label("total_fuel_usage"),
+                func.sum(model.FuelEntry.trip).label("total_km"),
                 func.sum(model.FuelEntry.price).label("total_expense"),
             )
             .filter(model.FuelEntry.user_id == user_id)
@@ -99,7 +99,7 @@ def side_card_metrics(user_id: str) -> SideCardMetrics:
 def get_fuel_litres_over_time(user_id: str) -> pd.DataFrame:
     columns = [
         model.FuelEntry.entry_datetime,
-        model.FuelEntry.fuel_litres,
+        model.FuelEntry.fuel_filled,
         model.FuelEntry.vehicle,
     ]
 
