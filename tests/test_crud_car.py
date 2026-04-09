@@ -3,6 +3,7 @@ import datetime
 import pytest
 from dirty_equals import IsAnyStr, IsDate, IsStr
 from sqlalchemy.engine import Engine
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from db import crud, m
@@ -69,8 +70,128 @@ class TestNewCar:
             assert car.color == IsAnyStr(max_length=255)
             assert car.registration_date == IsDate(gt=datetime.date(2000, 1, 1))
 
-    def test_unique_nickname_constraint(self, mock_engine: Engine):
-        pass
+
+class TestCarValidations:
+    @pytest.fixture(autouse=True)
+    def setup(
+        self,
+        pg_engine: Engine,
+    ):
+        self.user_id_1 = "test_sub_1"
+        self.user_id_2 = "test_sub_2"
+
+        crud.upsert_user(
+            sub=self.user_id_1,
+            name="Test User 1",
+            email=f"{self.user_id_1}@datatreehouse.org",
+            picture="https://example.com/profile.jpg",
+            engine=pg_engine,
+        )
+        crud.upsert_user(
+            sub=self.user_id_2,
+            name="Test User 2",
+            email=f"{self.user_id_2}@datatreehouse.org",
+            picture="https://example.com/profile.jpg",
+            engine=pg_engine,
+        )
+
+    @pytest.mark.integration
+    def test_unique_nickname_constraint(
+        self,
+        pg_engine: Engine,
+    ):
+        # First one will be okay
+        crud.new_car(
+            user_id=self.user_id_1,
+            nickname="Ford Focus",
+            fuel_type="Unleaded Petrol 95",
+            engine=pg_engine,
+        )
+
+        # Second one will raise an error
+        with pytest.raises(IntegrityError):
+            crud.new_car(
+                user_id=self.user_id_1,
+                nickname="Ford Focus",
+                fuel_type="Unleaded Petrol 95",
+                engine=pg_engine,
+            )
+
+        # But a different user won't
+        crud.new_car(
+            user_id=self.user_id_2,
+            nickname="Ford Focus",
+            fuel_type="Unleaded Petrol 95",
+            engine=pg_engine,
+        )
+
+    @pytest.mark.integration
+    def test_unique_registration_number_constraint(
+        self,
+        pg_engine: Engine,
+    ):
+        # First one will be okay
+        crud.new_car(
+            user_id=self.user_id_1,
+            nickname="Volkswagen Polo",
+            fuel_type="Unleaded Petrol 95",
+            engine=pg_engine,
+            registration_number="XX XX XX FS",
+        )
+
+        # Second one will raise an error
+        with pytest.raises(IntegrityError):
+            crud.new_car(
+                user_id=self.user_id_1,
+                nickname="Volkswagen Polo Rolo",
+                fuel_type="Unleaded Petrol 95",
+                engine=pg_engine,
+                registration_number="XX XX XX FS",
+            )
+
+        # A different user as well
+        with pytest.raises(IntegrityError):
+            crud.new_car(
+                user_id=self.user_id_2,
+                nickname="Volkswagen Polo Lux",
+                fuel_type="Unleaded Petrol 95",
+                engine=pg_engine,
+                registration_number="XX XX XX FS",
+            )
+
+    @pytest.mark.integration
+    def test_unique_vin_number_constraint(
+        self,
+        pg_engine: Engine,
+    ):
+        # First one will be okay
+        crud.new_car(
+            user_id=self.user_id_1,
+            nickname="Isuzu Mux",
+            fuel_type="Diesel 50ppm",
+            engine=pg_engine,
+            vin_number="1FALP42X9PF111111",
+        )
+
+        # Second one will raise an error
+        with pytest.raises(IntegrityError):
+            crud.new_car(
+                user_id=self.user_id_1,
+                nickname="Isuzu Muxxie",
+                fuel_type="Diesel 50ppm",
+                engine=pg_engine,
+                vin_number="1FALP42X9PF111111",
+            )
+
+        # A different user as well
+        with pytest.raises(IntegrityError):
+            crud.new_car(
+                user_id=self.user_id_2,
+                nickname="Isuzu Mux Max",
+                fuel_type="Diesel 50ppm",
+                engine=pg_engine,
+                vin_number="1FALP42X9PF111111",
+            )
 
 
 class TestReadCar:

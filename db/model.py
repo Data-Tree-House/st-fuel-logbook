@@ -133,11 +133,7 @@ class Car(BaseModel):
 
     __tablename__ = "cars"
 
-    __table_args__ = (
-        UniqueConstraint("user_id", "nickname", name="uq_user_nickname"),
-        UniqueConstraint("user_id", "vin_number", name="uq_user_vin"),
-        UniqueConstraint("user_id", "registration_number", name="uq_user_registration"),
-    )
+    __table_args__ = (UniqueConstraint("user_id", "nickname", name="uq_user_nickname"),)
 
     id: Mapped[int] = mapped_column(
         Integer,
@@ -164,13 +160,15 @@ class Car(BaseModel):
         comment="Type of fuel used (e.g., Petrol, Diesel)",
     )
     registration_number: Mapped[str | None] = mapped_column(
-        String(10),
+        String(20),
         nullable=True,
+        unique=True,
         comment="Vehicle registration number (optional)",
     )
     vin_number: Mapped[str | None] = mapped_column(
         String(17),
         nullable=True,
+        unique=True,
         comment="Vehicle Identification Number (VIN) (optional)",
     )
     model_description: Mapped[str | None] = mapped_column(
