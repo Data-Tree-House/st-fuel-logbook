@@ -6,6 +6,7 @@ PRIMARY_COLOR = "F36441"
 def coloured_text(text: Any, color_hex: str) -> str:
     return f":color[{text}]{{foreground='{color_hex}'}}"
 
+
 def primary_text(text: Any) -> str:
     return coloured_text(text, f"#{PRIMARY_COLOR}")
 
