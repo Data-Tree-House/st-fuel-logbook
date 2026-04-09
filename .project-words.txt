@@ -6,5 +6,6 @@ ondelete
 selectbox
 selectinload
 showlegend
+snapscan
 xaxis
 yaxis

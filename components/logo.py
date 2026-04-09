@@ -1,10 +1,12 @@
 import streamlit as st
 
+from constants import settings as s
+
 
 def top_logo():
     st.logo(
-        "static/streamlit.png",
-        icon_image="static/datatreehouse.circle.png",
+        s.logo_banner_path,
+        icon_image=s.logo_circle_path,
         size="large",
-        link="https://datatreehouse.org",
+        link=s.datatreehouse_url,
     )

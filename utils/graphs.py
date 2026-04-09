@@ -34,9 +34,9 @@ def plot_fuel_efficiency():
 
     fig = go.Figure()
 
-    line_style = {"color": f"#{PRIMARY_COLOR}", "width": 3}
+    line_style = {"color": f"{PRIMARY_COLOR}", "width": 3}
 
-    marker_style = {"size": 8, "color": f"#{PRIMARY_COLOR}"}
+    marker_style = {"size": 8, "color": f"{PRIMARY_COLOR}"}
 
     fig.add_trace(
         go.Scatter(

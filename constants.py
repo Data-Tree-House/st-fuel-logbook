@@ -22,6 +22,13 @@ class Settings(BaseSettings):
 
     favicon: Image.Image = Image.open(ROOT_DIR / "static" / "datatreehouse.circle.png")
 
+    logo_banner_path: str = "static/datatreehouse.banner.png"
+    logo_circle_path: str = "static/datatreehouse.banner.png"
+    buy_us_a_coffee_path: str = "static/buy-us-a-coffee.png"
+
+    datatreehouse_url: str = "https://datatreehouse.org"
+    snapscan_url: str = "https://pos.snapscan.io/qr/Ew6rBAsV"
+
     tz: tzinfo = pytz.timezone("Africa/Johannesburg")
 
     model_config = SettingsConfigDict(
