@@ -29,6 +29,9 @@ class Settings(BaseSettings):
     datatreehouse_url: str = "https://datatreehouse.org"
     snapscan_url: str = "https://pos.snapscan.io/qr/Ew6rBAsV"
 
+    umami_website_id: str
+    umami_host: str
+
     tz: tzinfo = pytz.timezone("Africa/Johannesburg")
 
     model_config = SettingsConfigDict(
