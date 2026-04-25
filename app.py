@@ -11,6 +11,9 @@ from loguru import logger
 import components as c
 import utils as u
 from constants import settings
+from db import crud, get_engine
+
+# TODO: add sigterm handlers
 
 # =============== // INITIALIZE APPLICATION // ===============
 
@@ -24,8 +27,7 @@ u.load_umami()
 
 if "init" not in st.session_state:
     logger.info("Initializing new session session")
-    engine = u.get_engine()
-    u.model.Base.metadata.create_all(engine)
+    crud.create_all_tables(engine=get_engine())
     st.session_state.init = True
 
 
@@ -36,23 +38,32 @@ if not st.user.is_logged_in:
 
 # =============== // PAGE NAVIGATION // ===============
 
-pages = [
-    st.Page(
-        "home.py",
-        title="Home",
-        icon=":material/home:",
-    ),
-    st.Page(
-        "stats.py",
-        title="Statistics",
-        icon=":material/analytics:",
-    ),
-    st.Page(
-        "bulk.py",
-        title="Bulk Upload",
-        icon=":material/upload_file:",
-    )
-]
+pages = {
+    "": [
+        st.Page(
+            "pages/home.py",
+            title="Fuel Entry",
+            icon=":material/local_gas_station:",
+        ),
+        st.Page(
+            "pages/stats.py",
+            title="Statistics",
+            icon=":material/analytics:",
+        ),
+    ],
+    "Manage": [
+        st.Page(
+            "pages/new_car.py",
+            title="New Car",
+            icon=":material/directions_car:",
+        ),
+        st.Page(
+            "pages/bulk.py",
+            title="Bulk Upload",
+            icon=":material/upload_file:",
+        ),
+    ],
+}
 page = st.navigation(pages)
 page.run()
 

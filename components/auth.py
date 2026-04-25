@@ -1,6 +1,7 @@
 import streamlit as st
 
-from utils import google_text, primary_text, st_plot_fuel_efficiency
+from utils import google_text, primary_text
+from utils.graphs import st_plot_fuel_efficiency
 
 
 def login():
