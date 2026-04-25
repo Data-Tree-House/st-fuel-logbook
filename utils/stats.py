@@ -17,13 +17,16 @@ Usage example::
 from __future__ import annotations
 
 from datetime import date, datetime
+from typing import TYPE_CHECKING
 
 import altair as alt
 import pandas as pd
 from loguru import logger
 from sqlalchemy import select
-from sqlalchemy.engine import Engine
 from sqlalchemy.orm import Session
+
+if TYPE_CHECKING:
+    from sqlalchemy.engine import Engine
 
 from db.model import Car, FuelEntry
 from utils.palette import PRIMARY_COLOR, SECONDARY_COLOR
