@@ -71,6 +71,85 @@ class ParseError:
     error: str
 
 
+# ── Private parsing helpers ───────────────────────────────────────────────────
+
+
+def _col_get(row: tuple[Any, ...], col: dict[str, int], header: str) -> Any:
+    """Return the cell value for *header*, or ``None`` if the column is absent."""
+    idx = col.get(header)
+    return row[idx] if idx is not None and idx < len(row) else None
+
+
+def _str_or_none(value: Any) -> str | None:
+    if value is None:
+        return None
+    stripped = str(value).strip()
+    return stripped if stripped else None
+
+
+def _date_or_none(value: Any) -> date | None:
+    if value is None:
+        return None
+    if isinstance(value, date):
+        return value
+    try:
+        from datetime import datetime
+
+        return datetime.strptime(str(value).strip(), "%Y-%m-%d").date()  # noqa: DTZ007
+    except (ValueError, TypeError):
+        return None
+
+
+def _parse_vehicle_row(
+    excel_row: int,
+    row: tuple[Any, ...],
+    col: dict[str, int],
+) -> tuple[ParsedVehicle | None, ParseError | None]:
+    """Parse a single Vehicles-sheet row into a :class:`ParsedVehicle`.
+
+    Returns a ``(vehicle, None)`` tuple on success, or ``(None, error)`` on
+    failure.  Rows with an empty Nickname are signalled by both values being
+    ``None`` (caller should skip them).
+    """
+    nickname_raw = _col_get(row, col, "Nickname")
+    if nickname_raw is None:
+        return None, None
+    nickname = str(nickname_raw).strip()
+    if not nickname:
+        return None, None
+
+    vehicle_id_raw = _col_get(row, col, "Id")
+    parsed_id: int | None
+    if vehicle_id_raw is None:
+        parsed_id = None
+    else:
+        try:
+            parsed_id = int(vehicle_id_raw)
+        except (ValueError, TypeError):
+            return None, ParseError(
+                row=excel_row,
+                error=f"Invalid Id value '{vehicle_id_raw}' for vehicle '{nickname}'.",
+            )
+
+    fuel_type = _str_or_none(_col_get(row, col, "Fuel Type"))
+    if parsed_id is None and not fuel_type:
+        return None, ParseError(
+            row=excel_row,
+            error=f"New vehicle '{nickname}' is missing a Fuel Type.",
+        )
+
+    return ParsedVehicle(
+        nickname=nickname,
+        id=parsed_id,
+        fuel_type=fuel_type,
+        registration_number=_str_or_none(_col_get(row, col, "Registration Number")),
+        vin_number=_str_or_none(_col_get(row, col, "VIN Number")),
+        model_description=_str_or_none(_col_get(row, col, "Model Description")),
+        color=_str_or_none(_col_get(row, col, "Color")),
+        registration_date=_date_or_none(_col_get(row, col, "Registration Date")),
+    ), None
+
+
 # ── Public helpers ─────────────────────────────────────────────────────────────
 
 
@@ -138,87 +217,20 @@ def parse_vehicles_sheet(wb: Workbook) -> tuple[list[ParsedVehicle], list[ParseE
     """
     ws = wb[VEHICLES_SHEET]
 
-    # Build a header → column-index map from row 1
+    # Build a header -> column-index map from row 1
     header_row: tuple[Any, ...] = next(ws.iter_rows(min_row=1, max_row=1, values_only=True))  # type: ignore[assignment]
     col: dict[str, int] = {str(h).strip(): i for i, h in enumerate(header_row) if h is not None}
-
-    def _get(row: tuple[Any, ...], header: str) -> Any:
-        """Return the cell value for *header*, or ``None`` if the column is absent."""
-        idx = col.get(header)
-        return row[idx] if idx is not None and idx < len(row) else None
-
-    def _str_or_none(value: Any) -> str | None:
-        if value is None:
-            return None
-        stripped = str(value).strip()
-        return stripped if stripped else None
-
-    def _date_or_none(value: Any) -> date | None:
-        if value is None:
-            return None
-        if isinstance(value, date):
-            return value
-        try:
-            from datetime import datetime
-
-            return datetime.strptime(str(value).strip(), "%Y-%m-%d").date()  # noqa: DTZ007
-        except (ValueError, TypeError):
-            return None
 
     vehicles: list[ParsedVehicle] = []
     errors: list[ParseError] = []
 
     for excel_row, row_raw in enumerate(ws.iter_rows(min_row=2, values_only=True), start=2):
         row: tuple[Any, ...] = row_raw  # type: ignore[assignment]
-
-        nickname_raw = _get(row, "Nickname")
-        if nickname_raw is None:
-            continue  # Blank row - skip silently
-
-        nickname = str(nickname_raw).strip()
-        if not nickname:
-            continue
-
-        # Parse the optional id
-        vehicle_id_raw = _get(row, "Id")
-        parsed_id: int | None
-        if vehicle_id_raw is None:
-            parsed_id = None
-        else:
-            try:
-                parsed_id = int(vehicle_id_raw)
-            except (ValueError, TypeError):
-                errors.append(
-                    ParseError(
-                        row=excel_row,
-                        error=f"Invalid Id value '{vehicle_id_raw}' for vehicle '{nickname}'.",
-                    )
-                )
-                continue
-
-        # New vehicles must have a fuel type
-        fuel_type = _str_or_none(_get(row, "Fuel Type"))
-        if parsed_id is None and not fuel_type:
-            errors.append(
-                ParseError(
-                    row=excel_row,
-                    error=f"New vehicle '{nickname}' is missing a Fuel Type.",
-                )
-            )
-            continue
-
-        vehicles.append(
-            ParsedVehicle(
-                nickname=nickname,
-                id=parsed_id,
-                fuel_type=fuel_type,
-                registration_number=_str_or_none(_get(row, "Registration Number")),
-                vin_number=_str_or_none(_get(row, "VIN Number")),
-                model_description=_str_or_none(_get(row, "Model Description")),
-                color=_str_or_none(_get(row, "Color")),
-                registration_date=_date_or_none(_get(row, "Registration Date")),
-            )
-        )
+        vehicle, error = _parse_vehicle_row(excel_row, row, col)
+        if error is not None:
+            errors.append(error)
+        elif vehicle is not None:
+            vehicles.append(vehicle)
 
     return vehicles, errors
 

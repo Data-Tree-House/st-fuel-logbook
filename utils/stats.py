@@ -2,10 +2,10 @@
 
 Pipeline
 --------
-1. ``FuelStats.__init__``  – declare filters (user, cars, date range)
-2. ``FuelStats.fetch()``   – query the database → raw :class:`pandas.DataFrame`
-3. ``FuelStats.clean()``   – derive metrics (efficiency, rolling cost, labels)
-4. ``FuelStats.chart_*``   – build Altair ``Chart`` objects ready for ``st.altair_chart``
+1. ``FuelStats.__init__``  - declare filters (user, cars, date range)
+2. ``FuelStats.fetch()``   - query the database -> raw :class:`pandas.DataFrame`
+3. ``FuelStats.clean()``   - derive metrics (efficiency, rolling cost, labels)
+4. ``FuelStats.chart_*``   - build Altair ``Chart`` objects ready for ``st.altair_chart``
 
 Usage example::
 
@@ -64,7 +64,7 @@ _CHART_CONFIG = {
 }
 
 
-def _apply_theme(chart: alt.Chart) -> alt.Chart:
+def _apply_theme(chart: alt.Chart | alt.LayerChart) -> alt.Chart | alt.LayerChart:
     """Apply a consistent dark-neutral theme to any Altair chart."""
     return chart.configure(**_CHART_CONFIG)
 
@@ -121,7 +121,7 @@ class FuelStats:
         self._cleaned: pd.DataFrame | None = None
 
     # ------------------------------------------------------------------
-    # Step 1 – Fetch
+    # Step 1 - Fetch
     # ------------------------------------------------------------------
 
     def fetch(self) -> pd.DataFrame:
@@ -184,7 +184,7 @@ class FuelStats:
         if not rows:
             logger.info(f"FuelStats: no entries found for user {self._user_id}")
             self._raw = pd.DataFrame(
-                columns=["id", "entry_datetime", "trip", "fuel_filled", "price", "car_id", "nickname"]
+                columns=pd.Index(["id", "entry_datetime", "trip", "fuel_filled", "price", "car_id", "nickname"])
             )
         else:
             self._raw = pd.DataFrame(rows)
@@ -192,7 +192,7 @@ class FuelStats:
         return self._raw
 
     # ------------------------------------------------------------------
-    # Step 2 – Clean
+    # Step 2 - Clean
     # ------------------------------------------------------------------
 
     def clean(self) -> pd.DataFrame:
@@ -210,7 +210,7 @@ class FuelStats:
         ``efficiency_mean``, ``efficiency_std``
             Per-vehicle mean and standard deviation of ``efficiency``.
         ``lower_bound``, ``upper_bound``
-            ±N·σ thresholds used for labelling.
+            +/-N*sigma thresholds used for labelling.
         ``label``
             ``"Good"`` for entries within the band, ``"Bad"`` outside.
 
@@ -242,7 +242,7 @@ class FuelStats:
 
         # --- per-vehicle efficiency statistics for labelling -------------
         per_car = df.groupby("car_id")["efficiency"].agg(efficiency_mean="mean", efficiency_std="std").reset_index()
-        # std is NaN for single-entry cars – default to 0
+        # std is NaN for single-entry cars - default to 0
         per_car["efficiency_std"] = per_car["efficiency_std"].fillna(0)
 
         df = df.merge(per_car, on="car_id")
@@ -260,10 +260,10 @@ class FuelStats:
         return self._cleaned
 
     # ------------------------------------------------------------------
-    # Step 3 – Charts
+    # Step 3 - Charts
     # ------------------------------------------------------------------
 
-    def chart_efficiency_distribution(self, df: pd.DataFrame) -> alt.Chart:
+    def chart_efficiency_distribution(self, df: pd.DataFrame) -> alt.Chart | alt.LayerChart:
         """Histogram of efficiency (km/L), colour-coded by vehicle.
 
         Parameters
@@ -290,19 +290,17 @@ class FuelStats:
                     title="Vehicle",
                     scale=alt.Scale(scheme="tableau10"),
                 ),
-                alt.Tooltip(
-                    [
-                        alt.Tooltip("nickname:N", title="Vehicle"),
-                        alt.Tooltip("efficiency:Q", title="Efficiency (km/L)", format=".2f"),
-                        alt.Tooltip("count():Q", title="Count"),
-                    ]
-                ),
+                tooltip=[
+                    alt.Tooltip("nickname:N", title="Vehicle"),
+                    alt.Tooltip("efficiency:Q", title="Efficiency (km/L)", format=".2f"),
+                    alt.Tooltip("count():Q", title="Count"),
+                ],
             )
             .properties(title="Efficiency Distribution (km/L)")
         )
         return _apply_theme(base)
 
-    def chart_rolling_cost_per_km(self, df: pd.DataFrame) -> alt.Chart:
+    def chart_rolling_cost_per_km(self, df: pd.DataFrame) -> alt.Chart | alt.LayerChart:
         """Rolling cost-per-km line chart, one line per vehicle.
 
         The rolling window is :attr:`rolling_window` entries.
@@ -331,26 +329,24 @@ class FuelStats:
                     title="Vehicle",
                     scale=alt.Scale(scheme="tableau10"),
                 ),
-                alt.Tooltip(
-                    [
-                        alt.Tooltip("nickname:N", title="Vehicle"),
-                        alt.Tooltip("date:N", title="Date"),
-                        alt.Tooltip("rolling_cost_per_km:Q", title="Rolling Cost/km (R)", format=".2f"),
-                        alt.Tooltip("cost_per_km:Q", title="Actual Cost/km (R)", format=".2f"),
-                    ]
-                ),
+                tooltip=[
+                    alt.Tooltip("nickname:N", title="Vehicle"),
+                    alt.Tooltip("date:N", title="Date"),
+                    alt.Tooltip("rolling_cost_per_km:Q", title="Rolling Cost/km (R)", format=".2f"),
+                    alt.Tooltip("cost_per_km:Q", title="Actual Cost/km (R)", format=".2f"),
+                ],
             )
-            .properties(title=f"Rolling Cost per km – {self.rolling_window}-entry window (R/km)")
+            .properties(title=f"Rolling Cost per km - {self.rolling_window}-entry window (R/km)")
         )
         return _apply_theme(base)
 
-    def chart_efficiency_over_time(self, df: pd.DataFrame) -> alt.Chart:
+    def chart_efficiency_over_time(self, df: pd.DataFrame) -> alt.Chart | alt.LayerChart:
         """Efficiency (km/L) scatter plot with Good/Bad labels.
 
         Points outside ±:attr:`std_multiplier` standard deviations from the
         per-vehicle mean are coloured as *Bad*; the rest as *Good*.
 
-        A semi-transparent band showing the ±N·σ range is drawn per vehicle
+        A semi-transparent band showing the +/-N*sigma range is drawn per vehicle
         when only one vehicle is selected (multi-vehicle bands would overlap
         and become confusing).
 
@@ -375,20 +371,18 @@ class FuelStats:
                 ),
                 alt.Color("label:N", scale=_LABEL_COLOR_SCALE, title="Label"),
                 alt.Shape("nickname:N", title="Vehicle"),
-                alt.Tooltip(
-                    [
-                        alt.Tooltip("nickname:N", title="Vehicle"),
-                        alt.Tooltip("date:N", title="Date"),
-                        alt.Tooltip("efficiency:Q", title="Efficiency (km/L)", format=".2f"),
-                        alt.Tooltip("lower_bound:Q", title=f"Lower bound (−{self.std_multiplier}σ)", format=".2f"),
-                        alt.Tooltip("upper_bound:Q", title=f"Upper bound (+{self.std_multiplier}σ)", format=".2f"),
-                        alt.Tooltip("label:N", title="Label"),
-                    ]
-                ),
+                tooltip=[
+                    alt.Tooltip("nickname:N", title="Vehicle"),
+                    alt.Tooltip("date:N", title="Date"),
+                    alt.Tooltip("efficiency:Q", title="Efficiency (km/L)", format=".2f"),
+                    alt.Tooltip("lower_bound:Q", title=f"Lower bound (-{self.std_multiplier}sigma)", format=".2f"),
+                    alt.Tooltip("upper_bound:Q", title=f"Upper bound (+{self.std_multiplier}sigma)", format=".2f"),
+                    alt.Tooltip("label:N", title="Label"),
+                ],
             )
         )
 
-        # --- ±N·σ band (only rendered when a single vehicle is shown) ----
+        # --- +/-N*sigma band (only rendered when a single vehicle is shown) ----
         unique_cars = df["car_id"].nunique()
         if unique_cars == 1:
             band = (
@@ -411,4 +405,4 @@ class FuelStats:
         else:
             chart = points
 
-        return _apply_theme(chart.properties(title=f"Efficiency over Time (±{self.std_multiplier}σ bands)"))
+        return _apply_theme(chart.properties(title=f"Efficiency over Time (+/-{self.std_multiplier}sigma bands)"))
