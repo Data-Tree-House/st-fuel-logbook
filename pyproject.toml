@@ -4,6 +4,8 @@ version = "0.1.0"
 description = "A Streamlit App to help you keep track of your fuel usage over time"
 readme = "README.md"
 requires-python = ">=3.12"
+license = "MIT"
+authors = [{ name = "Johan", email = "johan@datatreehouse.org" }]
 dependencies = [
     "streamlit>=1.52.0,<2.0.0",
     "Authlib>=1.6.9,<2.0.0",
@@ -15,12 +17,95 @@ dependencies = [
     "SQLAlchemy>=2.0.48,<3.0.0",
     "plotly>=6.6.0,<7.0.0",
     "openpyxl>=3.1.5,<4.0.0",
+    "psycopg2>=2.9.11,<3.0.0; sys_platform == 'win32'",
+    "psycopg2-binary>=2.9.11,<3.0.0; sys_platform != 'win32'",
+    "email-validator>=2.3.0,<3.0.0",
     "pytz",
     "loguru",
 ]
 
+[project.urls]
+Homepage = "https://fuel-logbook.datatreehouse.org"
+
 # uv sync --dev
 [dependency-groups]
-lint = ["pre-commit"]
-test = ["pytest", "pytest-cov", "pytest-pretty"]
+lint = ["pre-commit", "ty", "ruff"]
+test = [
+    "pytest",
+    "pytest-cov",
+    "pytest-pretty",
+    "testcontainers[postgres]",
+    "dirty-equals",
+]
 dev = [{ include-group = "test" }, { include-group = "lint" }]
+
+[tool.ty.environment]
+root = ["./"]
+python = ".venv"
+
+[tool.ruff]
+line-length = 120
+indent-width = 4
+target-version = "py312"
+
+[tool.ruff.lint]
+select = [
+    "E",
+    "F",
+    "B",
+    "I",
+    "FAST",
+    "A",
+    "C4",
+    "DTZ",
+    "ISC",
+    "ICN",
+    "LOG",
+    "PT",
+    "Q",
+    "RET",
+    "SIM",
+    "TID",
+    "TC",
+    "ARG",
+    "PTH",
+    "C90",
+    "N",
+    "PERF",
+    "RUF",
+]
+ignore = ["S101"]
+fixable = ["ALL"]
+unfixable = []
+dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+line-ending = "auto"
+
+[tool.pytest.ini_options]
+minversion = "9.0"
+testpaths = ["tests"]
+markers = ["integration: marks tests that are integration tests"]
+pythonpath = ["."]
+
+[tool.coverage.run]
+source = ["."]
+omit = ["tests/*"]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "if self.debug:",
+    "if settings.DEBUG",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if 0:",
+    "if __name__ == .__main__.:",
+    "class .*\\bProtocol\\):",
+    "@(abc\\.)?abstractmethod",
+]
+show_missing = true

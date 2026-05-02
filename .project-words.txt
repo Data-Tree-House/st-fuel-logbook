@@ -1,7 +1,12 @@
+autouse
 centered
+checkfirst
 datatreehouse
+Durbanville
 ondelete
 selectbox
+selectinload
 showlegend
+snapscan
 xaxis
 yaxis

@@ -1,0 +1,15 @@
+"🚀 feature":
+  - feature/*
+  - feat/*
+"🐛 fix":
+  - fix/*
+  - bugfix/*
+  - hotfix/*
+"🔨 chore":
+  - chore/*
+"♻️ refactor":
+  - refactor/*
+  - cleanup/*
+"📚 docs":
+  - docs/*
+  - doc/*

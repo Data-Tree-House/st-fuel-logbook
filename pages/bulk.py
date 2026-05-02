@@ -5,12 +5,8 @@ from numpy import mean
 from sqlalchemy.orm import Session
 
 from constants import settings
-from utils import coloured_text, model, primary_text
-from utils.db import get_engine
-
-st.set_page_config(
-    page_title="Bulk Upload",
-)
+from db import get_engine, m
+from utils import coloured_text, primary_text
 
 st.markdown(f"## Ready to perform a {primary_text('bulk upload')}?")
 
@@ -27,9 +23,9 @@ with template_path.open("rb") as f:
 COLUMN_NAME_MAPPING = {
     "Date (DD/MM/YYYY)": "date",
     "Vehicle": "vehicle",
-    "Odometer (km)": "odometer_km",
-    "Trip Distance (km)": "trip_km",
-    "Fuel Filled (Liters)": "fuel_litres",
+    "Odometer (km)": "odometer",
+    "Trip Distance (km)": "trip",
+    "Fuel Filled (Liters)": "fuel_filled",
     "Fuel Type": "fuel_type",
     "Price": "price",
     "Location": "location",
@@ -100,18 +96,18 @@ with st.container(border=True):
                 inplace=True,
             )
 
-            entries: list[model.FuelEntry] = []
+            entries: list[m.FuelEntry] = []
             errors: list[dict] = []
 
             for index, row in df.iterrows():
                 try:
-                    entry = model.FuelEntry(
+                    entry = m.FuelEntry(
                         entry_datetime=row["date"],
                         user_id=st.user.sub,
                         vehicle=row["vehicle"],
-                        odometer_km=row["odometer_km"],
-                        trip_km=row["trip_km"],
-                        fuel_litres=row["fuel_litres"],
+                        odometer=row["odometer"],
+                        trip=row["trip"],
+                        fuel_filled=row["fuel_filled"],
                         fuel_type=row["fuel_type"],
                         price=row["price"],
                         location=row["location"],
@@ -149,19 +145,20 @@ with st.container(border=True):
             st.rerun()
 
         if st.session_state.validated_entries is not None:
-            st.session_state.total_filled_sum = sum(entry.fuel_litres for entry in st.session_state.validated_entries)
-            st.session_state.total_km_sum = sum(entry.trip_km for entry in st.session_state.validated_entries)
+            st.session_state.total_filled_sum = sum(entry.fuel_filled for entry in st.session_state.validated_entries)
+            st.session_state.total_km_sum = sum(entry.trip for entry in st.session_state.validated_entries)
             st.session_state.ave_km_per_l_performance = mean(
                 [
-                    entry.trip_km / entry.fuel_litres
+                    entry.trip / entry.fuel_filled
                     for entry in st.session_state.validated_entries
-                    if entry.fuel_litres > 0
+                    if entry.fuel_filled > 0
                 ]
             )
 
             entry_count = len(st.session_state.validated_entries)
             st.info(
-                f"File validated successfully. Ready to upload **{entry_count}** {'entry' if entry_count == 1 else 'entries'}."
+                "File validated successfully. "
+                f"Ready to upload **{entry_count}** {'entry' if entry_count == 1 else 'entries'}."
             )
 
             col1, col2 = st.columns([1, 1])
