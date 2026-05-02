@@ -140,6 +140,9 @@ class Car(BaseModel):
         primary_key=True,
         index=True,
         autoincrement=True,
+        info={
+            "excel_name": "Id",
+        },
     )
     user_id: Mapped[str] = mapped_column(
         String(30),
@@ -149,6 +152,9 @@ class Car(BaseModel):
         ),
         index=True,
         comment="Reference to the user who created this entry",
+        info={
+            "excel_name": "User Id",
+        },
     )
     nickname: Mapped[str] = mapped_column(
         String(50),

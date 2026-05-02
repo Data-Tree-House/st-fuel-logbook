@@ -208,7 +208,7 @@ class TestReadCar:
 
     def test_read_cars_returns_none(self, mock_engine: Engine):
         """Test if I get None when I try to read cars for a user that has no cars"""
-        cars = crud.get_cars(user_id=self.user_id, engine=mock_engine)
+        cars = crud.get_all_cars(user_id=self.user_id, engine=mock_engine)
         assert cars is None
 
     def test_read_all_cars(self, mock_engine: Engine):
@@ -226,11 +226,55 @@ class TestReadCar:
             engine=mock_engine,
         )
 
-        cars = crud.get_cars(user_id=self.user_id, engine=mock_engine)
+        cars = crud.get_all_cars(user_id=self.user_id, engine=mock_engine)
         assert cars is not None
         assert len(cars) == 2
         assert cars[0].nickname == "Ford Focus"
         assert cars[1].nickname == "VW Polo"
+
+
+class TestReadFuelEntries:
+    @pytest.fixture(autouse=True)
+    def setup(self, mock_engine: Engine):
+        self.user_id = "test_sub"
+        self.user_id_2 = "test_sub_2"
+        crud.upsert_user(
+            sub=self.user_id,
+            name="Test User",
+            email="johan@datatreehouse.org",
+            picture="https://example.com/profile.jpg",
+            engine=mock_engine,
+        )
+        crud.upsert_user(
+            sub=self.user_id_2,
+            name="Test User 2",
+            email="johan2@datatreehouse.org",
+            picture="https://example.com/profile.jpg",
+            engine=mock_engine,
+        )
+
+    def test_read_all_fuel_entries(
+        self,
+        mock_engine: Engine,
+    ):
+        crud.new_car(
+            user_id=self.user_id,
+            nickname="Ford Focus",
+            fuel_type="Unleaded Petrol 95",
+            engine=mock_engine,
+        )
+        crud.new_car(
+            user_id=self.user_id,
+            nickname="VW Polo",
+            fuel_type="Diesel 10ppm",
+            engine=mock_engine,
+        )
+        crud.new_car(
+            user_id=self.user_id_2,
+            nickname="VW Polo",
+            fuel_type="Diesel 10ppm",
+            engine=mock_engine,
+        )
 
 
 # TODO update car
