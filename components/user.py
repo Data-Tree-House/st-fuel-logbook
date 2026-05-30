@@ -1,9 +1,8 @@
 import streamlit as st
 
 from constants import settings
+from db import crud, get_engine
 from utils import primary_text
-from utils.db import side_card_metrics
-from utils.types import SideCardMetrics
 
 
 def format_currency(value: float) -> str:
@@ -20,29 +19,27 @@ def format_currency(value: float) -> str:
 
 
 def metrics():
-    m: SideCardMetrics = side_card_metrics(str(st.user.sub))
+    stats = crud.get_user_fuel_stats(user_id=str(st.user.sub), engine=get_engine())
+
     with st.container(border=True):
         col1, col2 = st.columns(2)
         with col1:
             st.metric(
                 f"{primary_text('Entries')}",
-                value=m["num_entries"],
-                format="%.0f",
+                value=int(stats["entry_count"]),
             )
             st.metric(
                 f"{primary_text('Total Trip')}",
-                value=m["total_km"],
-                format=f"%.0f {primary_text('km')}",
+                value=f"{stats['total_trip_km']:.0f} km",
             )
         with col2:
             st.metric(
                 f"{primary_text('Total Fuel Usage')}",
-                value=m["total_fuel_usage"],
-                format=f"%.0f {primary_text('L')}",
+                value=f"{stats['total_fuel_litres']:.0f} L",
             )
             st.metric(
                 f"{primary_text('Total Expense')}",
-                value=format_currency(m["total_expense"]),
+                value=format_currency(stats["total_expense_zar"]),
             )
 
 

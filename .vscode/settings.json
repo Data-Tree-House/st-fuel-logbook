@@ -1,8 +1,8 @@
 {
     // Git settings
     "git.autofetch": true,
-    // Ruff settings - explicit config file path
-    "ruff.configuration": "${workspaceFolder}/.ruff.toml",
+    // Ruff settings - config lives in pyproject.toml
+    "ruff.configuration": "${workspaceFolder}/pyproject.toml",
     // Mypy settings - auto-discovers mypy.ini in workspace root
     "python.analysis.typeCheckingMode": "standard",
     // Python testing settings
