@@ -1,3 +1,4 @@
+import uuid
 from collections.abc import Sequence
 
 from loguru import logger
@@ -99,3 +100,32 @@ def get_user_fuel_stats(user_id: str, engine: Engine) -> dict[str, float]:
         "total_fuel_litres": float(result.total_fuel_litres),
         "total_expense_zar": float(result.total_expense_zar),
     }
+
+
+def get_fuel_entries_for_car(
+    car_id: uuid.UUID,
+    engine: Engine,
+) -> Sequence[FuelEntry] | None:
+    """Get all non-deleted fuel entries for a specific car, newest first.
+
+    Args:
+        car_id: UUID of the car.
+        engine: SQLAlchemy engine.
+
+    Returns:
+        Sequence of FuelEntry objects, or None if none found.
+    """
+    with Session(engine) as session:
+        stmt = (
+            select(FuelEntry)
+            .where(
+                FuelEntry.car_id == car_id,
+                FuelEntry.is_deleted == False,  # noqa: E712
+            )
+            .order_by(FuelEntry.entry_datetime.desc())
+        )
+        entries: Sequence[FuelEntry] = session.execute(stmt).scalars().all()
+        if not entries:
+            logger.info(f"No fuel entries found for car {car_id}")
+            return None
+        return entries

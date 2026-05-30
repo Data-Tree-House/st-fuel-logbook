@@ -1,6 +1,7 @@
 import streamlit as st
 
 from constants import settings
+from db import crud, get_engine
 from utils import primary_text
 
 
@@ -18,28 +19,27 @@ def format_currency(value: float) -> str:
 
 
 def metrics():
+    stats = crud.get_user_fuel_stats(user_id=str(st.user.sub), engine=get_engine())
+
     with st.container(border=True):
         col1, col2 = st.columns(2)
         with col1:
             st.metric(
                 f"{primary_text('Entries')}",
-                value=0,
-                format="%.0f",
+                value=int(stats["entry_count"]),
             )
             st.metric(
                 f"{primary_text('Total Trip')}",
-                value=0,
-                format=f"%.0f {primary_text('km')}",
+                value=f"{stats['total_trip_km']:.0f} km",
             )
         with col2:
             st.metric(
                 f"{primary_text('Total Fuel Usage')}",
-                value=0,
-                format=f"%.0f {primary_text('L')}",
+                value=f"{stats['total_fuel_litres']:.0f} L",
             )
             st.metric(
                 f"{primary_text('Total Expense')}",
-                value=format_currency(0),
+                value=format_currency(stats["total_expense_zar"]),
             )
 
 

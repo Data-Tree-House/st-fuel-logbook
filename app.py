@@ -62,6 +62,11 @@ pages = {
             title="Bulk Upload",
             icon=":material/upload_file:",
         ),
+        st.Page(
+            "pages/edit.py",
+            title="Edit Entries",
+            icon=":material/edit:",
+        ),
     ],
 }
 page = st.navigation(pages)

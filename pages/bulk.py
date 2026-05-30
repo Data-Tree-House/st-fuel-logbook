@@ -1,3 +1,5 @@
+import uuid
+
 import pandas as pd
 import streamlit as st
 from loguru import logger
@@ -5,10 +7,26 @@ from numpy import mean
 from sqlalchemy.orm import Session
 
 from constants import settings
-from db import get_engine, m
+from db import crud, get_engine, m
 from utils import coloured_text, primary_text
 
 st.markdown(f"## Ready to perform a {primary_text('bulk upload')}?")
+
+cars = crud.get_all_cars(user_id=str(st.user.sub), engine=get_engine())
+available_cars: dict[str, uuid.UUID] = {car.nickname: car.id for car in cars} if cars else {}
+car_nicknames = list(available_cars.keys())
+
+
+def new_car_layout():
+    st.markdown(f"Please {primary_text('add a car')} to start logging fuel entries.")
+    st.page_link(
+        "pages/new_car.py",
+        label="Add my first car",
+        icon=":material/directions_car:",
+        width="stretch",
+        query_params={"first_car": "true"},
+    )
+
 
 template_path = settings.static_dir / "template.xlsx"
 with template_path.open("rb") as f:
@@ -22,11 +40,9 @@ with template_path.open("rb") as f:
 
 COLUMN_NAME_MAPPING = {
     "Date (DD/MM/YYYY)": "date",
-    "Vehicle": "vehicle",
     "Odometer (km)": "odometer",
     "Trip Distance (km)": "trip",
     "Fuel Filled (Liters)": "fuel_filled",
-    "Fuel Type": "fuel_type",
     "Price": "price",
     "Location": "location",
 }
@@ -52,6 +68,16 @@ def validate_dataframe(
 
 with st.container(border=True):
     st.markdown("### New Bulk Upload")
+
+    if not cars:
+        new_car_layout()
+        st.stop()
+
+    selected_car_nickname = st.selectbox(
+        "Select what car you would like to bulk upload to",
+        options=car_nicknames,
+    )
+    selected_car_id: uuid.UUID = available_cars[selected_car_nickname]  # type: ignore[index]
 
     if "uploaded_file_processed" not in st.session_state:
         st.session_state.uploaded_file_processed = False
@@ -103,12 +129,10 @@ with st.container(border=True):
                 try:
                     entry = m.FuelEntry(
                         entry_datetime=row["date"],
-                        user_id=st.user.sub,
-                        vehicle=row["vehicle"],
+                        car_id=selected_car_id,
                         odometer=row["odometer"],
                         trip=row["trip"],
                         fuel_filled=row["fuel_filled"],
-                        fuel_type=row["fuel_type"],
                         price=row["price"],
                         location=row["location"],
                     )
