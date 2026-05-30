@@ -69,7 +69,6 @@ select = [
     "TC",
     "ARG",
     "PTH",
-    "C90",
     "N",
     "PERF",
     "RUF",

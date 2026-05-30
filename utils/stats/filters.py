@@ -1,8 +1,11 @@
 from __future__ import annotations
 
-import uuid
 from dataclasses import dataclass, field
-from datetime import date
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    import uuid
+    from datetime import date
 
 
 @dataclass
