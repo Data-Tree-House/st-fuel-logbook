@@ -6,6 +6,7 @@ import altair as alt
 import pandas as pd
 import streamlit as st
 
+from constants import settings
 from db import crud
 from utils.palette import PRIMARY_COLOR, SECONDARY_COLOR
 from utils.stats.base import Visual  # noqa: F401 - re-export for isinstance checks
@@ -21,9 +22,9 @@ def _apply_filters(df: pd.DataFrame, f: StatsFilter) -> pd.DataFrame:
     if f.car_ids:
         df = df[df["car_id"].isin(f.car_ids)]
     if f.date_from is not None:
-        df = df[df["entry_date"] >= pd.Timestamp(f.date_from)]
+        df = df[df["entry_date"] >= pd.Timestamp(f.date_from, tz=settings.tz)]
     if f.date_to is not None:
-        df = df[df["entry_date"] <= pd.Timestamp(f.date_to)]
+        df = df[df["entry_date"] <= pd.Timestamp(f.date_to, tz=settings.tz)]
     if f.locations:
         df = df[df["location"].isin(f.locations)]
     return df
