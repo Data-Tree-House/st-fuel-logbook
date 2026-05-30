@@ -22,7 +22,6 @@ wheels/
 full_describe.json
 
 # Gitkeep
-!.gitkeep
 
 # MkDocs
 site/
@@ -33,3 +32,7 @@ site/
 !.vscode/settings.json
 !.vscode/launch.json
 .coverage
+
+tests/tmp/**
+
+!.gitkeep

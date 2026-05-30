@@ -1,11 +1,11 @@
 import datetime
+import uuid
 
 import streamlit as st
 from loguru import logger
-from sqlalchemy.orm import Session
 
 from constants import settings
-from db import crud, get_engine, m
+from db import crud, get_engine
 from utils import primary_text
 
 # =============== // ACCOUNT CREATION FOR NEW USERS // ===============
@@ -37,7 +37,7 @@ available_fuel_types = {
     "Diesel 50ppm": 3,
     "Diesel 500ppm": 4,
 }
-available_cars: dict[str, int] = {car.nickname: car.id for car in user.cars}
+available_cars: dict[str, uuid.UUID] = {car.nickname: car.id for car in user.cars}
 car_nicknames = list(available_cars.keys())
 last_used_car_nickname: str | None = next(
     (car.nickname for car in user.cars if car.id == user.last_logged_vehicle_id),
@@ -128,28 +128,21 @@ def new_fuel_entry_layout():
                 entry_datetime = datetime.datetime.combine(date, time, tzinfo=settings.tz)
 
                 try:
-                    with Session(get_engine()) as session:
-                        new_entry = m.FuelEntry(
-                            car_id=available_cars[car],
-                            entry_datetime=entry_datetime,
-                            odometer=odometer,
-                            trip=trip,
-                            fuel_filled=filled,
-                            price=price,
-                            currency=currency,
-                            location=location if location else None,
-                        )
-                        session.add(new_entry)
+                    new_entry = crud.new_fuel_entry(
+                        str(st.user.sub),
+                        get_engine(),
+                        car_id=available_cars[car],
+                        entry_datetime=entry_datetime,
+                        odometer=odometer,
+                        trip=trip,
+                        fuel_filled=filled,
+                        price=price,
+                        currency=currency,
+                        location=location,
+                    )
 
-                        # Update last logged vehicle on the user
-                        db_user = session.get(m.User, str(st.user.sub))
-                        if db_user:
-                            db_user.last_logged_vehicle_id = available_cars[car]
-
-                        session.commit()
-
-                        price_per_litre = new_entry.price_per_litre
-                        fuel_consumption = new_entry.fuel_consumption
+                    price_per_litre = new_entry.price_per_litre
+                    fuel_consumption = new_entry.fuel_consumption
                 except ValueError as e:
                     logger.error(f"Validation error while saving fuel entry: {e!s}")
                     st.error(f"❌ Error: {e!s}")

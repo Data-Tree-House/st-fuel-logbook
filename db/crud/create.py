@@ -1,4 +1,5 @@
-import datetime
+import uuid
+from datetime import date, datetime
 
 from loguru import logger
 from sqlalchemy import select
@@ -69,8 +70,8 @@ def new_car(
     vin_number: str | None = None,
     model_description: str | None = None,
     color: str | None = None,
-    registration_date: datetime.date | None = None,
-) -> None:
+    registration_date: date | None = None,
+) -> uuid.UUID:
     """Create a new car entry for a user
 
     Args:
@@ -99,4 +100,41 @@ def new_car(
         )
         session.add(new_car)
         session.commit()
-    return
+        session.refresh(new_car)
+    return new_car.id
+
+
+def new_fuel_entry(
+    user_id: str,
+    engine: Engine,
+    /,
+    car_id: uuid.UUID,
+    entry_datetime: datetime,
+    odometer: float,
+    trip: float,
+    fuel_filled: float,
+    price: float,
+    currency: str,
+    location: str,
+) -> m.FuelEntry:
+    with Session(engine) as session:
+        new_entry = m.FuelEntry(
+            car_id=car_id,
+            entry_datetime=entry_datetime,
+            odometer=odometer,
+            trip=trip,
+            fuel_filled=fuel_filled,
+            price=price,
+            currency=currency,
+            location=location if location else None,
+        )
+        session.add(new_entry)
+
+        db_user = session.get(m.User, user_id)
+        if db_user:
+            db_user.last_logged_vehicle_id = car_id
+
+        session.commit()
+
+        session.refresh(new_entry)
+    return new_entry

@@ -1,11 +1,13 @@
 import hashlib
+import uuid
+from dataclasses import dataclass, field
 from datetime import date, datetime
 from functools import cached_property
 from typing import Literal
 
 import pytz
 from email_validator import validate_email
-from sqlalchemy import Date, DateTime, Float, ForeignKey, Integer, String, UniqueConstraint
+from sqlalchemy import Date, DateTime, Float, ForeignKey, String, UniqueConstraint, Uuid
 from sqlalchemy.orm import (
     DeclarativeBase,
     Mapped,
@@ -25,10 +27,35 @@ FuelTypeLiteral = Literal[
 ]
 
 
-class Base(DeclarativeBase):
-    """Base class for all models."""
+@dataclass
+class Metadata:
+    excel_name: str = field(default="")
 
-    pass
+
+class Base(DeclarativeBase):
+    @classmethod
+    def m(cls, name: str) -> Metadata:
+        return Metadata(**cls.__table__.c[name].info)
+
+    @classmethod
+    def columns(cls) -> list[str]:
+        return cls.__table__.c.keys()
+
+    @classmethod
+    def columns_to_excel_names(cls) -> dict[str, str]:
+        return {
+            col.name: col.info.get("excel_name", "")  #
+            for col in cls.__table__.c  #
+            if col.info.get("excel_name", "")  #
+        }
+
+    @classmethod
+    def excel_names_to_columns(cls) -> dict[str, str]:
+        return {
+            col.info.get("excel_name", ""): col.name  #
+            for col in cls.__table__.c  #
+            if col.info.get("excel_name", "")  #
+        }
 
 
 class BaseModel(Base):
@@ -41,6 +68,9 @@ class BaseModel(Base):
         default=lambda: datetime.now(TIMEZONE),
         nullable=False,
         comment="Timestamp when record was created (Africa/Johannesburg)",
+        info={
+            "excel_name": "",
+        },
     )
     last_modified_date: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
@@ -48,6 +78,9 @@ class BaseModel(Base):
         onupdate=lambda: datetime.now(TIMEZONE),
         nullable=False,
         comment="Timestamp when record was last modified (Africa/Johannesburg)",
+        info={
+            "excel_name": "",
+        },
     )
 
 
@@ -59,16 +92,25 @@ class User(BaseModel):
         primary_key=True,
         index=True,
         comment="The Google Id of the user logged in",
+        info={
+            "excel_name": "",
+        },
     )
     name: Mapped[str] = mapped_column(
         String(255),
         comment="The name and surname of the user",
+        info={
+            "excel_name": "",
+        },
     )
     email: Mapped[str] = mapped_column(
         String(250),  # according to email standards, the true max is 254...
         unique=True,
         index=True,
         comment="The email of the logged in user",
+        info={
+            "excel_name": "",
+        },
     )
     picture: Mapped[str | None] = mapped_column(
         String(500),
@@ -76,6 +118,9 @@ class User(BaseModel):
         # Thanks, https://vinicius73.github.io/gravatar-url-generator/#/
         default="https://gravatar.com/avatar/580b828f66630050b21aeaf8c20b89b3?s=400&d=mp&r=x",
         comment="The URL picture of the user",
+        info={
+            "excel_name": "",
+        },
     )
 
     # ====> Relationships
@@ -91,14 +136,17 @@ class User(BaseModel):
         cascade="all, delete-orphan",
     )
 
-    last_logged_vehicle_id: Mapped[int | None] = mapped_column(
-        Integer,
+    last_logged_vehicle_id: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid,
         ForeignKey(
             "cars.id",
             ondelete="SET NULL",
         ),
         nullable=True,
         comment="Reference to the last logged vehicle. This is used to pre-select the vehicle in the fuel entry form.",
+        info={
+            "excel_name": "",
+        },
     )
 
     def __repr__(self) -> str:
@@ -135,11 +183,11 @@ class Car(BaseModel):
 
     __table_args__ = (UniqueConstraint("user_id", "nickname", name="uq_user_nickname"),)
 
-    id: Mapped[int] = mapped_column(
-        Integer,
+    id: Mapped[uuid.UUID] = mapped_column(
+        Uuid,
         primary_key=True,
         index=True,
-        autoincrement=True,
+        default=uuid.uuid4,
         info={
             "excel_name": "Id",
         },
@@ -159,43 +207,67 @@ class Car(BaseModel):
     nickname: Mapped[str] = mapped_column(
         String(50),
         comment="A short nickname for the car",
+        info={
+            "excel_name": "",
+        },
     )
     fuel_type: Mapped[FuelTypeLiteral] = mapped_column(
         String(20),
         nullable=False,
         comment="Type of fuel used (e.g., Petrol, Diesel)",
+        info={
+            "excel_name": "",
+        },
     )
     registration_number: Mapped[str | None] = mapped_column(
         String(20),
         nullable=True,
         unique=True,
         comment="Vehicle registration number (optional)",
+        info={
+            "excel_name": "",
+        },
     )
     vin_number: Mapped[str | None] = mapped_column(
         String(17),
         nullable=True,
         unique=True,
         comment="Vehicle Identification Number (VIN) (optional)",
+        info={
+            "excel_name": "",
+        },
     )
     model_description: Mapped[str | None] = mapped_column(
         String(255),
         nullable=True,
         comment="Model description of the car (optional), e.g. ford focus 1.0 ecoboost ambiente 5dr",
+        info={
+            "excel_name": "",
+        },
     )
     color: Mapped[str | None] = mapped_column(
         String(50),
         nullable=True,
         comment="Color of the car (optional)",
+        info={
+            "excel_name": "",
+        },
     )
     registration_date: Mapped[date | None] = mapped_column(
         Date(),
         nullable=True,
         comment="Registration date of the car (optional)",
+        info={
+            "excel_name": "",
+        },
     )
     is_deleted: Mapped[bool] = mapped_column(
         default=False,
         nullable=False,
         comment="Soft delete flag for the car",
+        info={
+            "excel_name": "",
+        },
     )
 
     # ====> Relationships
@@ -227,51 +299,86 @@ class FuelEntry(BaseModel):
 
     __tablename__ = "fuel_entries"
 
-    id: Mapped[str] = mapped_column(
-        Integer,
+    id: Mapped[uuid.UUID] = mapped_column(
+        Uuid,
         primary_key=True,
         index=True,
-        autoincrement=True,
+        default=uuid.uuid4,
+        info={
+            "excel_name": "Id",
+        },
     )
-    car_id: Mapped[int] = mapped_column(
-        Integer,
+    car_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid,
         ForeignKey(
             "cars.id",
             ondelete="CASCADE",
         ),
         index=True,
         comment="Reference to the car this entry belongs to",
+        info={
+            "excel_name": "",
+        },
     )
     entry_datetime: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         index=True,
         comment="Date and time of the fuel entry",
+        info={
+            "excel_name": "Entry Date/Datetime",
+        },
     )
     odometer: Mapped[float] = mapped_column(
         Float,
         comment="Odometer reading in kilometres",
+        info={
+            "excel_name": "Odometer (km)",
+        },
     )
     trip: Mapped[float] = mapped_column(
         Float,
         comment="Trip distance in kilometres",
+        info={
+            "excel_name": "Trip (km)",
+        },
     )
     fuel_filled: Mapped[float] = mapped_column(
         Float,
         comment="Amount of fuel filled in litres",
+        info={
+            "excel_name": "Fuel Filled (km)",
+        },
     )
     price: Mapped[float] = mapped_column(
         Float,
         comment="Total price paid in Rand",
+        info={
+            "excel_name": "Price",
+        },
     )
     currency: Mapped[str] = mapped_column(
         String(255),
         default="ZAR",
         comment="Goes with the price",
+        info={
+            "excel_name": "Currency",
+        },
     )
     location: Mapped[str | None] = mapped_column(
         String(255),
         nullable=True,
         comment="Location where fuel was purchased",
+        info={
+            "excel_name": "Location",
+        },
+    )
+    is_deleted: Mapped[bool] = mapped_column(
+        default=False,
+        nullable=False,
+        comment="Soft delete flag for the car",
+        info={
+            "excel_name": "",
+        },
     )
 
     # ====> Relationships

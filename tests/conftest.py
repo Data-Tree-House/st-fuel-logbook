@@ -13,7 +13,9 @@ from db import crud
 @pytest.fixture
 def temp_dir() -> Generator[Path, None, None]:
     """Create a temporary directory that's cleaned up after the test."""
-    with tempfile.TemporaryDirectory() as tmpdir:
+    with tempfile.TemporaryDirectory(
+        dir=Path(__file__).parent / "tmp",
+    ) as tmpdir:
         yield Path(tmpdir)
 
 

@@ -3,7 +3,7 @@ from collections.abc import Sequence
 from loguru import logger
 from sqlalchemy import func, select
 from sqlalchemy.engine import Engine
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, selectinload
 
 from db.model import Car, FuelEntry
 
@@ -37,19 +37,30 @@ def get_all_cars(
 def get_all_fuel_entries(
     user_id: str,
     engine: Engine,
+    load_car: bool = False,
 ) -> Sequence[FuelEntry] | None:
     with Session(engine) as session:
         stmt = (
             select(FuelEntry)
-            .join(Car, FuelEntry.car_id == Car.id)
-            .where(
-                Car.id.in_(car_ids),
-                Car.is_deleted == False,  # noqa: E712
+            .join(
+                Car,
+                FuelEntry.car_id == Car.id,
+                full=True,
             )
+            .where(
+                Car.user_id == user_id,
+                Car.is_deleted == False,  # noqa: E712
+                FuelEntry.is_deleted == False,  # noqa: E712
+            )
+            .order_by(FuelEntry.entry_datetime.desc())
         )
+
+        if load_car:
+            stmt = stmt.options(selectinload(FuelEntry.car))  # EAGER!!!
+
         entries: Sequence[FuelEntry] = session.execute(stmt).scalars().all()
         if not entries:
-            logger.info(f"No fuel entries found for car IDs {car_ids}")
+            logger.info(f"No fuel entries found for user {user_id}")
             return None
         return entries
 
