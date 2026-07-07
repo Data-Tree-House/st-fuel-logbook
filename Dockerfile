@@ -1,6 +1,7 @@
 # Multi-stage build for minimal Streamlit image
 # Stage 1: Builder - install dependencies
 FROM python:3.12-slim AS builder
+LABEL nickname="st-fuel-logbook"
 
 WORKDIR /app
 
